@@ -1,0 +1,31 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-2 p-0">
+    <div class="row g-0" style="min-height: calc(100vh - 100px);">
+
+        <aside id="mySidebar" class="col-md-3 bg-light p-3 border-end" style="transition: 0.3s;">
+            @if (IsSectionDefined("Sidebar"))
+            {
+                @RenderSection("Sidebar")
+            }
+        </aside>
+
+        <main id="myMain" class="col-md-9 p-4" style="transition: 0.3s;">
+            @if (IsSectionDefined("Content"))
+            {
+                @RenderSection("Content")
+            }
+            else
+            {
+                @RenderBody()
+            }
+        </main>
+
+    </div>
+</div>
+
+@section Scripts {
+    @RenderSection("Scripts", required: false)
+}
