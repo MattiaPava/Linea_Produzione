@@ -35,9 +35,14 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+//app.MapControllerRoute(
+//    name: "default",
+//    pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// 2. CORREZIONE FONDAMENTALE: Impostiamo la pagina delle distinte come pagina iniziale predefinita
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=DistintaBase}/{action=DistintaBase}/{id?}");
 app.MapRazorPages();
 
 app.Run();

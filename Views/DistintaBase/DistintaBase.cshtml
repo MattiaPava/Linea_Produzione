@@ -1,0 +1,161 @@
+﻿@model Linea_Produzione.Models.DistintaBaseSearchModel
+@{
+    ViewData["Title"] = "Gestione Distinte Base";
+    Layout = "_TwoColumnsLayout";
+}
+
+@section Sidebar {
+    <div id="sidebarContent" class="w-100">
+
+        <form id="searchForm" autocomplete="off">
+            <div class="d-flex gap-2 mb-4">
+                <button type="submit" id="btnCerca" class="btn btn-primary flex-grow-1 btn-sm">
+                    <i class="bi bi-search"></i> Cerca
+                </button>
+
+                <button type="button" id="btnCancella" class="btn btn-outline-secondary flex-grow-1 btn-sm" onclick="svuotaFiltri()">
+                    <i class="bi bi-eraser"></i> Cancella
+                </button>
+
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="toggleSidebar()">
+                    <i id="toggleIcon" class="bi bi-chevron-left"></i>
+                </button>
+            </div>
+
+            <div id="sidebarFields">
+                <h5 class="mb-3 border-bottom pb-2">Filtri di Ricerca</h5>
+
+                <div class="mb-3">
+                    <label asp-for="Codice" class="form-label fw-bold mb-1">Codice</label>
+                    <input asp-for="Codice" class="form-control" placeholder="Inserisci codice...">
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Descrizione" class="form-label fw-bold mb-1">Descrizione</label>
+                    <textarea asp-for="Descrizione" class="form-control" rows="3" placeholder="Inserisci descrizione..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="DataInizio" class="form-label fw-bold mb-1">Data inizio</label>
+                    <input asp-for="DataInizio" type="date" class="form-control">
+                </div>
+            </div>
+        </form>
+    </div>
+}
+
+@section Content {
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Elenco Distinte Base</h2>
+        <button class="btn btn-success btn-sm"><i class="bi bi-plus-circle"></i> Nuova Distinta</button>
+    </div>
+
+    <div class="table-responsive bg-white border rounded shadow-sm">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th scope="col" style="width: 80px;">ID</th>
+                    <th scope="col">Codice</th>
+                    <th scope="col">Descrizione</th>
+                    <th scope="col">Data Inizio</th>
+                    <th scope="col" style="width: 100px;">Versione</th>
+                    <th scope="col" style="width: 120px;">Stato</th>
+                    <th scope="col" class="text-end" style="width: 100px;">Azioni</th>
+                </tr>
+            </thead>
+            <tbody id="gridBody">
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // 1. Esegue la ricerca immediata non appena la pagina ha finito di caricarsi
+            eseguiRicerca();
+
+            // 2. Intercetta il tasto invio / click su Cerca
+            const form = document.getElementById("searchForm");
+            form.addEventListener("submit", function (e) {
+                e.preventDefault(); // Impedisce il caricamento classico della pagina
+                eseguiRicerca();
+            });
+        });
+
+        function eseguiRicerca() {
+            const form = document.getElementById("searchForm");
+            const formData = new FormData(form);
+            const queryParams = new URLSearchParams(formData).toString();
+            const tbody = document.getElementById("gridBody");
+
+            // Inserisce uno spinner di caricamento temporaneo nella tabella
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </td>
+                </tr>`;
+
+            // Chiamata FETCH verso l'Action "Ricerca"
+            fetch(`@Url.Action("Ricerca", "DistintaBase")?${queryParams}`)
+                .then(response => response.json())
+                .then(data => {
+                    tbody.innerHTML = ""; // Svuota lo spinner
+
+                    // Caso: Nessun risultato trovato
+                    if (data.length === 0) {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="bi bi-search display-6 d-block mb-2"></i>
+                                    Nessuna distinta base corrisponde ai criteri di ricerca.
+                                </td>
+                            </tr>`;
+                        return;
+                    }
+
+                    // Caso: Dati ricevuti con successo, cicla l'array JSON
+                    // Nota: In JS le proprietà C# diventano in minuscolo (es. codice, descrizione)
+                    data.forEach(item => {
+                        const dataFormattata = new Date(item.dataInizio).toLocaleDateString('it-IT');
+                        const badgeClass = item.stato === "Approvato" ? "bg-success" : "bg-warning text-dark";
+
+                        const rowHTML = `
+                            <tr>
+                                <td><strong>#${item.id}</strong></td>
+                                <td><span class="badge bg-secondary font-monospace">${item.codice}</span></td>
+                                <td>${item.descrizione}</td>
+                                <td>${dataFormattata}</td>
+                                <td>v${item.versione}</td>
+                                <td><span class="badge ${badgeClass}">${item.stato}</span></td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" title="Modifica"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-outline-danger" title="Elimina"><i class="bi bi-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>`;
+
+                        tbody.insertAdjacentHTML('beforeend', rowHTML);
+                    });
+                })
+                .catch(err => {
+                    console.error("Errore nel caricamento dei dati JSON:", err);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" class="text-center text-danger py-4">
+                                <i class="bi bi-exclamation-triangle display-6 d-block mb-2"></i>
+                                Impossibile recuperare i dati dal server.
+                            </td>
+                        </tr>`;
+                });
+        }
+
+        // Gestione del pulsante Cancella
+        function svuotaFiltri() {
+            document.getElementById("searchForm").reset();
+            eseguiRicerca(); // Ricarica la griglia completa iniziale
+        }
+    </script>
+}
