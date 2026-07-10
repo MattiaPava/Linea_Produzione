@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using Linea_Produzione.Managers.BaseManager;
 using Linea_Produzione.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,74 +8,97 @@ namespace Linea_Produzione.Controllers
 {
     public class DistintaBaseController : Controller
     {
-        // Questo risponde a: /DistintaBase/DistintaBase
+        private readonly IBaseManager _baseManager;
+
+        public DistintaBaseController(IBaseManager baseManager)
+        {
+            _baseManager = baseManager;
+        }
+
+        // 1. Risponde a: /DistintaBase/DistintaBase
         public IActionResult DistintaBase()
         {
-            var searchModel = new DistintaBaseSearchModel();
+            long idUtenteCorrente = 1;
+
+            var searchModel = new DistintaBaseSearchModel
+            {
+                IdUtente = idUtenteCorrente
+            };
+
             return View(searchModel);
         }
 
-        // Questo gestisce la ricerca AJAX
+        // 2. Gestisce la ricerca AJAX sulla griglia
         [HttpGet]
         public IActionResult Ricerca(DistintaBaseSearchModel search)
         {
-            // Dati finti per il test
-            var archivio = new List<DistintaBaseGridModel>
-            {
-                new DistintaBaseGridModel { Id = 1, Codice = "DB-001", Descrizione = "Distinta Base Scocca Alfa", DataInizio = new DateTime(2026, 1, 10), Versione = "1.0", Stato = "Approvato" },
-                new DistintaBaseGridModel { Id = 2, Codice = "DB-002", Descrizione = "Assieme Motore Elettrico X", DataInizio = new DateTime(2026, 3, 15), Versione = "2.1", Stato = "In Sviluppo" },
-                new DistintaBaseGridModel { Id = 3, Codice = "DB-003", Descrizione = "Cablaggio Principale L1", DataInizio = new DateTime(2026, 5, 20), Versione = "1.2", Stato = "Approvato" }
-            };
-
-            var query = archivio.AsQueryable();
-
-            if (!string.IsNullOrEmpty(search.Codice))
-            {
-                query = query.Where(d => d.Codice.Contains(search.Codice, StringComparison.OrdinalIgnoreCase));
-            }
-            if (!string.IsNullOrEmpty(search.Descrizione))
-            {
-                query = query.Where(d => d.Descrizione.Contains(search.Descrizione, StringComparison.OrdinalIgnoreCase));
-            }
-            if (search.DataInizio.HasValue)
-            {
-                query = query.Where(d => d.DataInizio == search.DataInizio.Value.Date);
-            }
-
-            return Json(query.ToList());
+            var risultato = _baseManager.CercaDistintaBase(search);
+            return Json(risultato);
         }
 
-        // Controllers/DistintaBaseController.cs
-
+        // 4. Inizializza il modello per la creazione e restituisce la Partial View
         [HttpGet]
-        public IActionResult Riepilogo(int id)
+        public IActionResult Nuovo(long idUtente)
         {
-            // 1. Recupera la distinta dal DB usando l'id (qui simulato)
-            // var distinta = _context.DistinteBase.Find(id);
-
-            // Dati finti per il test
-            var archivio = new List<DistintaBaseGridModel>
-            {
-                new DistintaBaseGridModel { Id = 1, Codice = "DB-001", Descrizione = "Distinta Base Scocca Alfa", DataInizio = new DateTime(2026, 1, 10), Versione = "1.0", Stato = "Approvato" },
-                new DistintaBaseGridModel { Id = 2, Codice = "DB-002", Descrizione = "Assieme Motore Elettrico X", DataInizio = new DateTime(2026, 3, 15), Versione = "2.1", Stato = "In Sviluppo" },
-                new DistintaBaseGridModel { Id = 3, Codice = "DB-003", Descrizione = "Cablaggio Principale L1", DataInizio = new DateTime(2026, 5, 20), Versione = "1.2", Stato = "Approvato" }
-            };
-
-            var query = archivio.Where(e => e.Id == id).FirstOrDefault();
-
-            // 2. Mappatura sul modello Edit richiesto
             var model = new DistintaBaseModel
             {
-                Id = query.Id,
-                Codice = query.Codice,
-                Descrizione = query.Descrizione,
-                DataInizio = query.DataInizio,
-                Versione = query.Versione,
-                Stato = query.Stato,
+                IdUtente = idUtente,
+                Id = 0,
+                DataInizio = DateTime.Today, // Impostiamo la data di oggi come default
+                Versione = "01",            // Primo rilascio di default
+                ReadOnly = false            // Sblocca i campi in scrittura!
+            };
+
+            return PartialView("DistintaBaseEditModel", model);
+        }
+
+        // 5. Riceve i dati dal Popup ed esegue il salvataggio sul DB passando dal Manager
+        [HttpPost]
+        public IActionResult Salva(DistintaBaseModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "I dati inseriti non sono validi." });
+            }
+
+            // Invochiamo il manager per scrivere fisicamente sul database
+            bool esito = _baseManager.SalvaNuovaDistinta(model);
+
+            if (esito)
+            {
+                return Json(new { success = true, message = "Distinta Base salvata correttamente!" });
+            }
+
+            return Json(new { success = false, message = "Errore durante il salvataggio a database." });
+        }
+
+        // 3. Carica il Riepilogo parziale usando SEMPRE CercaDistintaBase
+        [HttpGet]
+        public IActionResult Riepilogo(long id)
+        {
+            // Istanziamo il modello di ricerca configurando solo l'ID richiesto
+            var searchModel = new DistintaBaseSearchModel { Id = id };
+
+            // Invochiamo l'unica funzione del manager ed estraiamo il primo risultato
+            var distinta = _baseManager.CercaDistintaBase(searchModel).FirstOrDefault();
+
+            if (distinta == null)
+            {
+                return NotFound("Distinta base non trovata.");
+            }
+
+            // Mappatura finale per la Partial View originaria
+            var model = new DistintaBaseModel
+            {
+                Id = distinta.Id,
+                Codice = distinta.Codice,
+                Descrizione = distinta.Descrizione,
+                DataInizio = distinta.DataInizio,
+                Versione = distinta.Versione,
+                Stato = distinta.Stato,
                 ReadOnly = true
             };
 
-            // Ritorniamo una PartialView passandogli il modello
             return PartialView("DistintaBaseEditModel", model);
         }
     }

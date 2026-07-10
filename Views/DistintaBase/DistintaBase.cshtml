@@ -7,6 +7,9 @@
 @section Sidebar {
     <div id="sidebarContent" class="w-100">
         <form id="searchForm" autocomplete="off">
+
+            <input type="hidden" asp-for="IdUtente" />
+
             <div class="d-flex gap-2 mb-4">
                 <button type="submit" id="btnCerca" class="btn btn-primary flex-grow-1 btn-sm"><i class="bi bi-search"></i> Cerca</button>
                 <button type="button" id="btnCancella" class="btn btn-outline-danger flex-grow-1 btn-sm"><i class="bi bi-eraser"></i> Cancella</button>
@@ -33,7 +36,9 @@
 
 @section Content {
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <button type="button" id="btnNuovo" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Nuovo</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="apriPopupNuovo(@Model.IdUtente)">
+            <i class="bi bi-plus-circle"></i> Nuovo
+        </button>
         <div class="px-4 py-1.5 border border-info rounded-pill bg-light shadow-sm">
             <h5 class="text-info mb-0 fw-semibold tracking-wide small" style="font-size: 0.95rem;"><i class="bi bi-table me-2"></i>Elenco Distinte Base</h5>
         </div>
@@ -61,6 +66,19 @@
     </div>
 
     <partial name="_DistintaBaseTabs" />
+
+    <div class="modal fade" id="modalGenerico" tabindex="-1" aria-labelledby="modalGenericoLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0">
+                <div class="modal-header bg-dark text-white py-2.5">
+                    <h6 class="modal-title fw-semibold" id="modalGenericoLabel"><i class="bi bi-file-earmark-plus me-2"></i>Nuova Distinta Base</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                </div>
+            </div>
+        </div>
+    </div>
 }
 
 @section Scripts {
@@ -75,20 +93,17 @@
             // 1. Inizializzazione della Griglia con gestione dinamica dei Tab
             GridManager.initSelection("gridBody", "btnModifica", "btnElimina", {
                 onSelect: function (id) {
-                    // Mostra il contenitore dei tab
                     tabsContainer.classList.remove("d-none");
-                    // Inserisce uno spinner temporaneo nel tab riepilogo
                     riepilogoPlaceholder.innerHTML = `
                         <div class="text-center text-muted py-4">
                             <div class="spinner-border text-info spinner-border-sm me-2" role="status"></div>
                             Caricamento dati riepilogo...
                         </div>`;
 
-                    // Chiamata Fetch alla Action "Riepilogo" che restituisce HTML parziale
                     fetch(`@Url.Action("Riepilogo", "DistintaBase")?id=${id}`)
                         .then(response => {
                             if (!response.ok) throw new Error("Impossibile caricare il riepilogo.");
-                            return response.text(); // Chiediamo .text() perché la Action risponde con HTML, non JSON
+                            return response.text();
                         })
                         .then(html => {
                             riepilogoPlaceholder.innerHTML = html;
@@ -98,7 +113,6 @@
                         });
                 },
                 onDeselect: function () {
-                    // Se l'utente deseleziona la riga, nascondiamo i tab e svuotiamo il contenuto
                     tabsContainer.classList.add("d-none");
                     riepilogoPlaceholder.innerHTML = "";
                 }
@@ -130,5 +144,81 @@
                 }
             });
         });
+
+        // MODIFICA: Riscritte in Pure Javascript per massima compatibilità senza dipendere da jQuery
+        function apriPopupNuovo(idUtente) {
+            const urlCompleto = `@Url.Action("Nuovo", "DistintaBase")?idUtente=${idUtente}`;
+
+            fetch(urlCompleto)
+                .then(response => {
+                    if (!response.ok) throw new Error("Errore nel caricamento del modulo.");
+                    return response.text();
+                })
+                .then(htmlResponse => {
+                    const modalEl = document.getElementById('modalGenerico');
+                    const dialogEl = modalEl.querySelector('.modal-dialog');
+                    const bodyEl = modalEl.querySelector('.modal-body');
+
+                    // Forza le medie dimensioni (modal-md) rimuovendo altre classi residue
+                    dialogEl.classList.remove('modal-lg', 'modal-sm');
+                    dialogEl.classList.add('modal-md');
+
+                    // Sostituisce l'HTML interno con la form parziale caricata
+                    bodyEl.innerHTML = htmlResponse;
+
+                    // Inizializza e mostra il Modal tramite le API native di Bootstrap 5
+                    var myModal = new bootstrap.Modal(modalEl);
+                    myModal.show();
+                })
+                .catch(err => alert("Impossibile aprire il popup: " + err.message));
+        }
+
+                function salvaNuovaDistinta() {
+            // 1. Recuperiamo l'elemento del Modal
+            const modalEl = document.getElementById('modalGenerico');
+
+            // 2. SOLUZIONE CRUCIALE: Cerchiamo il form SPECIFICAMENTE dentro il popup,
+            // ignorando completamente il form del Riepilogo presente sullo sfondo!
+            const form = modalEl ? modalEl.querySelector('form') : null;
+
+            if (!form) {
+                alert("Errore: Modulo di inserimento non trovato nel popup.");
+                return;
+            }
+
+            // Serializzazione nativa dei campi del form corretto
+            const formData = new FormData(form);
+            const searchParams = new URLSearchParams(formData);
+
+            fetch(`@Url.Action("Salva", "DistintaBase")`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: searchParams
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Errore di risposta dal server.");
+                return response.json();
+            })
+            .then(response => {
+                if (response.success) {
+                    alert(response.message);
+
+                    // Chiusura del modal nativo
+                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+
+                    // Forza il click sul pulsante "Cerca" per ricaricare la tabella aggiornata
+                    document.getElementById('btnCerca').click();
+                } else {
+                    alert(response.message);
+                }
+            })
+            .catch(err => alert("Errore durante il salvataggio: " + err.message));
+        }
+
     </script>
 }

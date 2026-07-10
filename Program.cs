@@ -14,7 +14,30 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
 
+// Registrazione del Manager per la Dependency Injection
+builder.Services.AddScoped<Linea_Produzione.Managers.BaseManager.IBaseManager, Linea_Produzione.Managers.BaseManager.BaseManager>();
+
 var app = builder.Build();
+
+// ==========================================
+// AGGIUNTA AUTOMATICA: Crea il DB se non esiste
+// ==========================================
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        // Questo comando controlla il DB: se non esiste, lo crea all'istante con tutte le tabelle!
+        context.Database.EnsureCreated();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Un errore è avvenuto durante la creazione del Database.");
+    }
+}
+// ==========================================
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
