@@ -1,0 +1,28 @@
+﻿@model Linea_Produzione.Models.DistintaBaseModel
+
+<div class="row g-3">
+    <div class="col-md-2">
+        <label asp-for="Id" class="form-label small mb-1">ID</label>
+        <input asp-for="Id" class="form-control" disabled="@Model.ReadOnly" />
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="Codice" class="form-label small mb-1">Codice</label>
+        <input asp-for="Codice" class="form-control" disabled="@Model.ReadOnly" />
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="Versione" class="form-label small mb-1">Versione</label>
+        <input asp-for="Versione" class="form-control" disabled="@Model.ReadOnly" />
+    </div>
+
+    <div class="col-md-3">
+        <label asp-for="DataInizio" class="form-label small mb-1">Data Inizio</label>
+        <input asp-for="DataInizio" type="date" class="form-control" asp-format="{0:yyyy-MM-dd}" disabled="@Model.ReadOnly" />
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Descrizione" class="form-label small mb-1">Descrizione</label>
+        <textarea asp-for="Descrizione" class="form-control" rows="2" disabled="@Model.ReadOnly"></textarea>
+    </div>
+</div>

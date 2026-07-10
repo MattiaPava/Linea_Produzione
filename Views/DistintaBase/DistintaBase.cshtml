@@ -8,32 +8,20 @@
     <div id="sidebarContent" class="w-100">
         <form id="searchForm" autocomplete="off">
             <div class="d-flex gap-2 mb-4">
-                <button type="submit" id="btnCerca" class="btn btn-primary flex-grow-1 btn-sm">
-                    <i class="bi bi-search"></i> Cerca
-                </button>
-
-                <button type="button" id="btnCancella" class="btn btn-outline-danger flex-grow-1 btn-sm">
-                    <i class="bi bi-eraser"></i> Cancella
-                </button>
-
-                <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="toggleSidebar()">
-                    <i id="toggleIcon" class="bi bi-chevron-left"></i>
-                </button>
+                <button type="submit" id="btnCerca" class="btn btn-primary flex-grow-1 btn-sm"><i class="bi bi-search"></i> Cerca</button>
+                <button type="button" id="btnCancella" class="btn btn-outline-danger flex-grow-1 btn-sm"><i class="bi bi-eraser"></i> Cancella</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm px-3" onclick="toggleSidebar()"><i id="toggleIcon" class="bi bi-chevron-left"></i></button>
             </div>
-
             <div id="sidebarFields">
                 <h5 class="mb-3 border-bottom pb-2">Filtri di Ricerca</h5>
-
                 <div class="mb-3">
                     <label asp-for="Codice" class="form-label fw-bold mb-1">Codice</label>
                     <input asp-for="Codice" class="form-control" placeholder="Inserisci codice...">
                 </div>
-
                 <div class="mb-3">
                     <label asp-for="Descrizione" class="form-label fw-bold mb-1">Descrizione</label>
                     <textarea asp-for="Descrizione" class="form-control" rows="3" placeholder="Inserisci descrizione..."></textarea>
                 </div>
-
                 <div class="mb-3">
                     <label asp-for="DataInizio" class="form-label fw-bold mb-1">Data inizio</label>
                     <input asp-for="DataInizio" type="date" class="form-control">
@@ -45,17 +33,13 @@
 
 @section Content {
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0">Elenco Distinte Base</h2>
+        <button type="button" id="btnNuovo" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Nuovo</button>
+        <div class="px-4 py-1.5 border border-info rounded-pill bg-light shadow-sm">
+            <h5 class="text-info mb-0 fw-semibold tracking-wide small" style="font-size: 0.95rem;"><i class="bi bi-table me-2"></i>Elenco Distinte Base</h5>
+        </div>
         <div class="d-flex gap-2">
-            <button type="button" id="btnNuovo" class="btn btn-primary btn-sm">
-                <i class="bi bi-plus-circle"></i> Nuovo
-            </button>
-            <button type="button" id="btnModifica" class="btn btn-primary btn-sm" disabled>
-                <i class="bi bi-pencil-square"></i> Modifica
-            </button>
-            <button type="button" id="btnElimina" class="btn btn-danger btn-sm" disabled>
-                <i class="bi bi-trash"></i> Elimina
-            </button>
+            <button type="button" id="btnModifica" class="btn btn-primary btn-sm" disabled><i class="bi bi-pencil-square"></i> Modifica</button>
+            <button type="button" id="btnElimina" class="btn btn-danger btn-sm" disabled><i class="bi bi-trash"></i> Elimina</button>
         </div>
     </div>
 
@@ -72,20 +56,55 @@
                     <th scope="col" class="text-end" style="width: 100px;">Azioni</th>
                 </tr>
             </thead>
-            <tbody id="gridBody">
-            </tbody>
+            <tbody id="gridBody"></tbody>
         </table>
     </div>
+
+    <partial name="_DistintaBaseTabs" />
 }
 
 @section Scripts {
+    <script src="~/js/grid.js" asp-append-version="true"></script>
+    <script src="~/js/search.js" asp-append-version="true"></script>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const tabsContainer = document.getElementById("dettagliTabsContainer");
+            const riepilogoPlaceholder = document.getElementById("riepilogoContentPlaceholder");
 
-            // 1. Inizializza la selezione della griglia (logica in grid.js)
-            GridManager.initSelection("gridBody", "btnModifica", "btnElimina");
+            // 1. Inizializzazione della Griglia con gestione dinamica dei Tab
+            GridManager.initSelection("gridBody", "btnModifica", "btnElimina", {
+                onSelect: function (id) {
+                    // Mostra il contenitore dei tab
+                    tabsContainer.classList.remove("d-none");
+                    // Inserisce uno spinner temporaneo nel tab riepilogo
+                    riepilogoPlaceholder.innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <div class="spinner-border text-info spinner-border-sm me-2" role="status"></div>
+                            Caricamento dati riepilogo...
+                        </div>`;
 
-            // 2. Inizializza la ricerca centralizzata (logica in search.js)
+                    // Chiamata Fetch alla Action "Riepilogo" che restituisce HTML parziale
+                    fetch(`@Url.Action("Riepilogo", "DistintaBase")?id=${id}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error("Impossibile caricare il riepilogo.");
+                            return response.text(); // Chiediamo .text() perché la Action risponde con HTML, non JSON
+                        })
+                        .then(html => {
+                            riepilogoPlaceholder.innerHTML = html;
+                        })
+                        .catch(err => {
+                            riepilogoPlaceholder.innerHTML = `<div class="alert alert-danger mb-0">${err.message}</div>`;
+                        });
+                },
+                onDeselect: function () {
+                    // Se l'utente deseleziona la riga, nascondiamo i tab e svuotiamo il contenuto
+                    tabsContainer.classList.add("d-none");
+                    riepilogoPlaceholder.innerHTML = "";
+                }
+            });
+
+            // 2. Inizializzazione del motore di ricerca globale
             SearchManager.init({
                 formId: "searchForm",
                 tbodyId: "gridBody",
@@ -95,12 +114,9 @@
                 url: `@Url.Action("Ricerca", "DistintaBase")`,
                 colspan: 7,
                 emptyMessage: "Nessuna distinta base corrisponde ai criteri di ricerca.",
-
-                // Questa funzione dice a search.js COME deve disegnare la riga specifica per questo modello
                 renderRow: function (item) {
                     const dataFormattata = new Date(item.dataInizio).toLocaleDateString('it-IT');
                     const badgeClass = item.stato === "Approvato" ? "bg-success" : "bg-warning text-dark";
-
                     return `
                         <tr data-id="${item.id}" style="cursor: pointer;">
                             <td><strong>#${item.id}</strong></td>
@@ -109,13 +125,10 @@
                             <td>${dataFormattata}</td>
                             <td>v${item.versione}</td>
                             <td><span class="badge ${badgeClass}">${item.stato}</span></td>
-                            <td class="text-end">
-                                <div class="btn-group btn-group-sm"></div>
-                            </td>
+                            <td class="text-end"><div class="btn-group btn-group-sm"></div></td>
                         </tr>`;
                 }
             });
-
         });
     </script>
 }
