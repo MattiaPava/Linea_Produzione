@@ -12,6 +12,9 @@ namespace Linea_Produzione.Models
         [Key]
         public long Id { get; set; } // IDENTITY (1, 1) NOT NULL
 
+        public bool ReadOnly { get; set; }
+        public bool ShowCloseButton { get; set; }
+
         [Required(ErrorMessage = "L'utente è obbligatorio.")]
         public long IdUtente { get; set; } // BIGINT NOT NULL
 
@@ -34,7 +37,5 @@ namespace Linea_Produzione.Models
         // Grazie a '#nullable disable' viaggerà come null senza rompere il ModelState.IsValid!
         [StringLength(64, ErrorMessage = "Lo stato non può superare i 64 caratteri.")]
         public string Stato { get; set; } // NVARCHAR (64) NULL
-
-        public bool ReadOnly { get; set; }
     }
 }

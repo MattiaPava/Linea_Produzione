@@ -46,7 +46,8 @@ namespace Linea_Produzione.Controllers
                 Id = 0,
                 DataInizio = DateTime.Today, // Impostiamo la data di oggi come default
                 Versione = "01",            // Primo rilascio di default
-                ReadOnly = false            // Sblocca i campi in scrittura!
+                ReadOnly = false,           // Sblocca i campi in scrittura!
+                ShowCloseButton = true
             };
 
             return PartialView("DistintaBaseEditModel", model);
@@ -96,7 +97,8 @@ namespace Linea_Produzione.Controllers
                 DataInizio = distinta.DataInizio,
                 Versione = distinta.Versione,
                 Stato = distinta.Stato,
-                ReadOnly = true
+                ReadOnly = true,
+                ShowCloseButton = false
             };
 
             return PartialView("DistintaBaseEditModel", model);
