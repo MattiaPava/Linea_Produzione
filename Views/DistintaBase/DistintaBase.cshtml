@@ -13,7 +13,7 @@
                     <i class="bi bi-search"></i> Cerca
                 </button>
 
-                <button type="button" id="btnCancella" class="btn btn-outline-secondary flex-grow-1 btn-sm" onclick="svuotaFiltri()">
+                <button type="button" id="btnCancella" class="btn btn-outline-danger flex-grow-1 btn-sm" onclick="svuotaFiltri()">
                     <i class="bi bi-eraser"></i> Cancella
                 </button>
 
@@ -47,7 +47,17 @@
 @section Content {
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0">Elenco Distinte Base</h2>
-        <button class="btn btn-success btn-sm"><i class="bi bi-plus-circle"></i> Nuova Distinta</button>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnNuovo" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle"></i> Nuovo
+            </button>
+            <button type="button" id="btnModifica" class="btn btn-primary btn-sm" disabled>
+                <i class="bi bi-pencil-square"></i> Modifica
+            </button>
+            <button type="button" id="btnElimina" class="btn btn-danger btn-sm" disabled>
+                <i class="bi bi-trash"></i> Elimina
+            </button>
+        </div>
     </div>
 
     <div class="table-responsive bg-white border rounded shadow-sm">
@@ -72,6 +82,10 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
+            const btnModifica = document.getElementById("btnModifica");
+            const btnElimina = document.getElementById("btnElimina");
+            const tbody = document.getElementById("gridBody");
+
             // 1. Esegue la ricerca immediata non appena la pagina ha finito di caricarsi
             eseguiRicerca();
 
@@ -81,9 +95,40 @@
                 e.preventDefault(); // Impedisce il caricamento classico della pagina
                 eseguiRicerca();
             });
+
+            // 3. Gestione della selezione della riga tramite Event Delegation
+            tbody.addEventListener("click", function (e) {
+                const tr = e.target.closest("tr");
+
+                // Salta il click se non è una riga di dati valida (es. lo spinner o nessun risultato)
+                if (!tr || !tr.hasAttribute("data-id")) return;
+
+                const giaSelezionata = tr.classList.contains("table-info");
+
+                // Rimuove l'evidenziazione da tutte le righe
+                tbody.querySelectorAll("tr").forEach(r => r.classList.remove("table-info"));
+
+                if (!giaSelezionata) {
+                    // Evidenzia in azzurro la riga selezionata e abilita i pulsanti
+                    tr.classList.add("table-info");
+                    btnModifica.disabled = false;
+                    btnElimina.disabled = false;
+
+                    // Nota: Se ti serve l'ID selezionato per le chiamate successive, puoi recuperarlo così:
+                    // const idSelezionato = tr.getAttribute("data-id");
+                } else {
+                    // Se la riga era già selezionata, la deseleziona e disabilita i pulsanti
+                    btnModifica.disabled = true;
+                    btnElimina.disabled = true;
+                }
+            });
         });
 
         function eseguiRicerca() {
+            // Reset dei pulsanti quando si avvia una nuova ricerca
+            document.getElementById("btnModifica").disabled = true;
+            document.getElementById("btnElimina").disabled = true;
+
             const form = document.getElementById("searchForm");
             const formData = new FormData(form);
             const queryParams = new URLSearchParams(formData).toString();
@@ -116,13 +161,13 @@
                     }
 
                     // Caso: Dati ricevuti con successo, cicla l'array JSON
-                    // Nota: In JS le proprietà C# diventano in minuscolo (es. codice, descrizione)
                     data.forEach(item => {
                         const dataFormattata = new Date(item.dataInizio).toLocaleDateString('it-IT');
                         const badgeClass = item.stato === "Approvato" ? "bg-success" : "bg-warning text-dark";
 
+                        // Aggiunto l'attributo data-id e il cursore pointer per far capire che è cliccabile
                         const rowHTML = `
-                            <tr>
+                            <tr data-id="${item.id}" style="cursor: pointer;">
                                 <td><strong>#${item.id}</strong></td>
                                 <td><span class="badge bg-secondary font-monospace">${item.codice}</span></td>
                                 <td>${item.descrizione}</td>
@@ -131,8 +176,6 @@
                                 <td><span class="badge ${badgeClass}">${item.stato}</span></td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-primary" title="Modifica"><i class="bi bi-pencil"></i></button>
-                                        <button class="btn btn-outline-danger" title="Elimina"><i class="bi bi-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>`;
@@ -155,7 +198,7 @@
         // Gestione del pulsante Cancella
         function svuotaFiltri() {
             document.getElementById("searchForm").reset();
-            eseguiRicerca(); // Ricarica la griglia completa iniziale
+            eseguiRicerca(); // Ricarica la griglia completa iniziale e resetta lo stato dei pulsanti
         }
     </script>
 }
