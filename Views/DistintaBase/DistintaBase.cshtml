@@ -6,14 +6,13 @@
 
 @section Sidebar {
     <div id="sidebarContent" class="w-100">
-
         <form id="searchForm" autocomplete="off">
             <div class="d-flex gap-2 mb-4">
                 <button type="submit" id="btnCerca" class="btn btn-primary flex-grow-1 btn-sm">
                     <i class="bi bi-search"></i> Cerca
                 </button>
 
-                <button type="button" id="btnCancella" class="btn btn-outline-danger flex-grow-1 btn-sm" onclick="svuotaFiltri()">
+                <button type="button" id="btnCancella" class="btn btn-outline-danger flex-grow-1 btn-sm">
                     <i class="bi bi-eraser"></i> Cancella
                 </button>
 
@@ -82,123 +81,41 @@
 @section Scripts {
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const btnModifica = document.getElementById("btnModifica");
-            const btnElimina = document.getElementById("btnElimina");
-            const tbody = document.getElementById("gridBody");
 
-            // 1. Esegue la ricerca immediata non appena la pagina ha finito di caricarsi
-            eseguiRicerca();
+            // 1. Inizializza la selezione della griglia (logica in grid.js)
+            GridManager.initSelection("gridBody", "btnModifica", "btnElimina");
 
-            // 2. Intercetta il tasto invio / click su Cerca
-            const form = document.getElementById("searchForm");
-            form.addEventListener("submit", function (e) {
-                e.preventDefault(); // Impedisce il caricamento classico della pagina
-                eseguiRicerca();
-            });
+            // 2. Inizializza la ricerca centralizzata (logica in search.js)
+            SearchManager.init({
+                formId: "searchForm",
+                tbodyId: "gridBody",
+                btnCancellaId: "btnCancella",
+                btnModificaId: "btnModifica",
+                btnEliminaId: "btnElimina",
+                url: `@Url.Action("Ricerca", "DistintaBase")`,
+                colspan: 7,
+                emptyMessage: "Nessuna distinta base corrisponde ai criteri di ricerca.",
 
-            // 3. Gestione della selezione della riga tramite Event Delegation
-            tbody.addEventListener("click", function (e) {
-                const tr = e.target.closest("tr");
+                // Questa funzione dice a search.js COME deve disegnare la riga specifica per questo modello
+                renderRow: function (item) {
+                    const dataFormattata = new Date(item.dataInizio).toLocaleDateString('it-IT');
+                    const badgeClass = item.stato === "Approvato" ? "bg-success" : "bg-warning text-dark";
 
-                // Salta il click se non è una riga di dati valida (es. lo spinner o nessun risultato)
-                if (!tr || !tr.hasAttribute("data-id")) return;
-
-                const giaSelezionata = tr.classList.contains("table-info");
-
-                // Rimuove l'evidenziazione da tutte le righe
-                tbody.querySelectorAll("tr").forEach(r => r.classList.remove("table-info"));
-
-                if (!giaSelezionata) {
-                    // Evidenzia in azzurro la riga selezionata e abilita i pulsanti
-                    tr.classList.add("table-info");
-                    btnModifica.disabled = false;
-                    btnElimina.disabled = false;
-
-                    // Nota: Se ti serve l'ID selezionato per le chiamate successive, puoi recuperarlo così:
-                    // const idSelezionato = tr.getAttribute("data-id");
-                } else {
-                    // Se la riga era già selezionata, la deseleziona e disabilita i pulsanti
-                    btnModifica.disabled = true;
-                    btnElimina.disabled = true;
-                }
-            });
-        });
-
-        function eseguiRicerca() {
-            // Reset dei pulsanti quando si avvia una nuova ricerca
-            document.getElementById("btnModifica").disabled = true;
-            document.getElementById("btnElimina").disabled = true;
-
-            const form = document.getElementById("searchForm");
-            const formData = new FormData(form);
-            const queryParams = new URLSearchParams(formData).toString();
-            const tbody = document.getElementById("gridBody");
-
-            // Inserisce uno spinner di caricamento temporaneo nella tabella
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="7" class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status"></div>
-                    </td>
-                </tr>`;
-
-            // Chiamata FETCH verso l'Action "Ricerca"
-            fetch(`@Url.Action("Ricerca", "DistintaBase")?${queryParams}`)
-                .then(response => response.json())
-                .then(data => {
-                    tbody.innerHTML = ""; // Svuota lo spinner
-
-                    // Caso: Nessun risultato trovato
-                    if (data.length === 0) {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">
-                                    <i class="bi bi-search display-6 d-block mb-2"></i>
-                                    Nessuna distinta base corrisponde ai criteri di ricerca.
-                                </td>
-                            </tr>`;
-                        return;
-                    }
-
-                    // Caso: Dati ricevuti con successo, cicla l'array JSON
-                    data.forEach(item => {
-                        const dataFormattata = new Date(item.dataInizio).toLocaleDateString('it-IT');
-                        const badgeClass = item.stato === "Approvato" ? "bg-success" : "bg-warning text-dark";
-
-                        // Aggiunto l'attributo data-id e il cursore pointer per far capire che è cliccabile
-                        const rowHTML = `
-                            <tr data-id="${item.id}" style="cursor: pointer;">
-                                <td><strong>#${item.id}</strong></td>
-                                <td><span class="badge bg-secondary font-monospace">${item.codice}</span></td>
-                                <td>${item.descrizione}</td>
-                                <td>${dataFormattata}</td>
-                                <td>v${item.versione}</td>
-                                <td><span class="badge ${badgeClass}">${item.stato}</span></td>
-                                <td class="text-end">
-                                    <div class="btn-group btn-group-sm">
-                                    </div>
-                                </td>
-                            </tr>`;
-
-                        tbody.insertAdjacentHTML('beforeend', rowHTML);
-                    });
-                })
-                .catch(err => {
-                    console.error("Errore nel caricamento dei dati JSON:", err);
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="7" class="text-center text-danger py-4">
-                                <i class="bi bi-exclamation-triangle display-6 d-block mb-2"></i>
-                                Impossibile recuperare i dati dal server.
+                    return `
+                        <tr data-id="${item.id}" style="cursor: pointer;">
+                            <td><strong>#${item.id}</strong></td>
+                            <td><span class="badge bg-secondary font-monospace">${item.codice}</span></td>
+                            <td>${item.descrizione}</td>
+                            <td>${dataFormattata}</td>
+                            <td>v${item.versione}</td>
+                            <td><span class="badge ${badgeClass}">${item.stato}</span></td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm"></div>
                             </td>
                         </tr>`;
-                });
-        }
+                }
+            });
 
-        // Gestione del pulsante Cancella
-        function svuotaFiltri() {
-            document.getElementById("searchForm").reset();
-            eseguiRicerca(); // Ricarica la griglia completa iniziale e resetta lo stato dei pulsanti
-        }
+        });
     </script>
 }
