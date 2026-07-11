@@ -7,7 +7,6 @@
 @section Sidebar {
     <div id="sidebarContent" class="w-100">
         <form id="searchForm" autocomplete="off">
-
             <input type="hidden" asp-for="IdUtente" />
 
             <div class="d-flex gap-2 mb-4">
@@ -52,13 +51,11 @@
         <table class="table table-hover align-middle mb-0">
             <thead class="table-dark">
                 <tr>
-                    <th scope="col" style="width: 80px;">ID</th>
-                    <th scope="col">Codice</th>
-                    <th scope="col">Descrizione</th>
-                    <th scope="col">Data Inizio</th>
+                    <th scope="col" style="width: 140px;">Codice</th>
                     <th scope="col" style="width: 100px;">Versione</th>
+                    <th scope="col">Descrizione</th>
+                    <th scope="col" style="width: 140px;">Data Inizio</th>
                     <th scope="col" style="width: 120px;">Stato</th>
-                    <th scope="col" class="text-end" style="width: 100px;">Azioni</th>
                 </tr>
             </thead>
             <tbody id="gridBody"></tbody>
@@ -68,14 +65,13 @@
     <partial name="_DistintaBaseTabs" />
 
     <div class="modal fade" id="modalGenerico" tabindex="-1" aria-labelledby="modalGenericoLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-md">
             <div class="modal-content shadow-lg border-0">
                 <div class="modal-header bg-dark text-white py-2.5">
-                    <h6 class="modal-title fw-semibold" id="modalGenericoLabel"><i class="bi bi-file-earmark-plus me-2"></i>Nuova Distinta Base</h6>
+                    <h6 class="modal-title fw-semibold" id="modalGenericoLabel"></h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body p-4">
-                </div>
+                <div class="modal-body p-4"></div>
             </div>
         </div>
     </div>
@@ -86,13 +82,16 @@
     <script src="~/js/search.js" asp-append-version="true"></script>
 
     <script>
+        let _idSelezionato = null;
+
         document.addEventListener("DOMContentLoaded", function () {
             const tabsContainer = document.getElementById("dettagliTabsContainer");
             const riepilogoPlaceholder = document.getElementById("riepilogoContentPlaceholder");
 
-            // 1. Inizializzazione della Griglia con gestione dinamica dei Tab
+            // 1. Inizializzazione della Griglia
             GridManager.initSelection("gridBody", "btnModifica", "btnElimina", {
                 onSelect: function (id) {
+                    _idSelezionato = id;
                     tabsContainer.classList.remove("d-none");
                     riepilogoPlaceholder.innerHTML = `
                         <div class="text-center text-muted py-4">
@@ -101,21 +100,20 @@
                         </div>`;
 
                     fetch(`@Url.Action("Riepilogo", "DistintaBase")?id=${id}`)
-                        .then(response => {
-                            if (!response.ok) throw new Error("Impossibile caricare il riepilogo.");
-                            return response.text();
-                        })
-                        .then(html => {
-                            riepilogoPlaceholder.innerHTML = html;
-                        })
-                        .catch(err => {
-                            riepilogoPlaceholder.innerHTML = `<div class="alert alert-danger mb-0">${err.message}</div>`;
-                        });
+                        .then(res => res.ok ? res.text() : Promise.reject("Impossibile caricare il riepilogo."))
+                        .then(html => riepilogoPlaceholder.innerHTML = html)
+                        .catch(err => riepilogoPlaceholder.innerHTML = `<div class="alert alert-danger mb-0">${err}</div>`);
                 },
                 onDeselect: function () {
+                    _idSelezionato = null;
                     tabsContainer.classList.add("d-none");
                     riepilogoPlaceholder.innerHTML = "";
                 }
+            });
+
+            // Collegamento del pulsante Modifica
+            document.getElementById("btnModifica").addEventListener("click", function () {
+                if (_idSelezionato) apriPopupModifica(_idSelezionato, @Model.IdUtente);
             });
 
             // 2. Inizializzazione del motore di ricerca globale
@@ -126,99 +124,84 @@
                 btnModificaId: "btnModifica",
                 btnEliminaId: "btnElimina",
                 url: `@Url.Action("Ricerca", "DistintaBase")`,
-                colspan: 7,
+                colspan: 5,
                 emptyMessage: "Nessuna distinta base corrisponde ai criteri di ricerca.",
                 renderRow: function (item) {
-                    const dataFormattata = new Date(item.dataInizio).toLocaleDateString('it-IT');
-                    const badgeClass = item.stato === "Approvato" ? "bg-success" : "bg-warning text-dark";
+                    let badgeClass = "bg-success";
+
+                    if (item.stato === "Creato" || item.stato === "Created") {
+                        badgeClass = "bg-warning text-dark";
+                    } else if (item.stato === "Archived" || item.stato === "Archiviato") {
+                        badgeClass = "bg-light text-dark border";
+                    }
+
+                    // Codice e Versione renderizzati come testo pulito senza box grigi
                     return `
-                        <tr data-id="${item.id}" style="cursor: pointer;">
-                            <td><strong>#${item.id}</strong></td>
-                            <td><span class="badge bg-secondary font-monospace">${item.codice}</span></td>
-                            <td>${item.descrizione}</td>
-                            <td>${dataFormattata}</td>
-                            <td>v${item.versione}</td>
-                            <td><span class="badge ${badgeClass}">${item.stato}</span></td>
-                            <td class="text-end"><div class="btn-group btn-group-sm"></div></td>
-                        </tr>`;
+                    <tr data-id="${item.id}" style="cursor: pointer;">
+                        <td>${item.codice}</td>
+                        <td>${item.versione}</td>
+                        <td>${item.descrizione}</td>
+                        <td>${item.dataInizio}</td>
+                        <td><span class="badge ${badgeClass}">${item.stato}</span></td>
+                    </tr>`;
                 }
             });
         });
 
-        // MODIFICA: Riscritte in Pure Javascript per massima compatibilità senza dipendere da jQuery
-        function apriPopupNuovo(idUtente) {
-            const urlCompleto = `@Url.Action("Nuovo", "DistintaBase")?idUtente=${idUtente}`;
-
-            fetch(urlCompleto)
-                .then(response => {
-                    if (!response.ok) throw new Error("Errore nel caricamento del modulo.");
-                    return response.text();
-                })
+        // Centralizzazione Gestione Popup
+        function gestisciPopup(url, titolo) {
+            fetch(url)
+                .then(res => res.ok ? res.text() : Promise.reject("Errore nel caricamento del modulo."))
                 .then(htmlResponse => {
                     const modalEl = document.getElementById('modalGenerico');
-                    const dialogEl = modalEl.querySelector('.modal-dialog');
-                    const bodyEl = modalEl.querySelector('.modal-body');
+                    modalEl.querySelector('.modal-title').innerHTML = titolo;
+                    modalEl.querySelector('.modal-body').innerHTML = htmlResponse;
 
-                    // Forza le medie dimensioni (modal-md) rimuovendo altre classi residue
-                    dialogEl.classList.remove('modal-lg', 'modal-sm');
-                    dialogEl.classList.add('modal-md');
-
-                    // Sostituisce l'HTML interno con la form parziale caricata
-                    bodyEl.innerHTML = htmlResponse;
-
-                    // Inizializza e mostra il Modal tramite le API native di Bootstrap 5
-                    var myModal = new bootstrap.Modal(modalEl);
-                    myModal.show();
+                    new bootstrap.Modal(modalEl).show();
                 })
-                .catch(err => alert("Impossibile aprire il popup: " + err.message));
+                .catch(err => alert("Impossibile aprire il popup: " + err));
         }
 
-        function salvaNuovaDistinta() {
-            // 1. Recuperiamo l'elemento del Modal
-            const modalEl = document.getElementById('modalGenerico');
+        function apriPopupNuovo(idUtente) {
+            const url = `@Url.Action("Nuovo", "DistintaBase")?idUtente=${idUtente}`;
+            gestisciPopup(url, `<i class="bi bi-plus-circle me-2"></i>Nuova Distinta Base`);
+        }
 
-            // 2. SOLUZIONE CRUCIALE: Cerchiamo il form SPECIFICAMENTE dentro il popup,
-            // ignorando completamente il form del Riepilogo presente sullo sfondo!
+        function apriPopupModifica(id, idUtente) {
+            const url = `@Url.Action("Modifica", "DistintaBase")?id=${id}&idUtente=${idUtente}`;
+            gestisciPopup(url, `<i class="bi bi-pencil-square me-2"></i>Modifica Distinta Base`);
+        }
+
+        // Salvataggio unico asincrono
+        function salvaNuovaDistinta() {
+            const modalEl = document.getElementById('modalGenerico');
             const form = modalEl ? modalEl.querySelector('form') : null;
 
-            if (!form) {
-                alert("Errore: Modulo di inserimento non trovato nel popup.");
-                return;
-            }
-
-            // Serializzazione nativa dei campi del form corretto
-            const formData = new FormData(form);
-            const searchParams = new URLSearchParams(formData);
+            if (!form) return alert("Errore: Modulo non trovato nel popup.");
 
             fetch(`@Url.Action("Salva", "DistintaBase")`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
-                body: searchParams
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams(new FormData(form))
             })
-            .then(response => {
-                if (!response.ok) throw new Error("Errore di risposta dal server.");
-                return response.json();
-            })
+            .then(res => res.ok ? res.json() : Promise.reject("Errore di risposta dal server."))
             .then(response => {
                 if (response.success) {
-                    //alert(response.message);
-
-                    // Chiusura del modal nativo
-                    const modalInstance = bootstrap.Modal.getInstance(modalEl);
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
-
-                    // Forza il click sul pulsante "Cerca" per ricaricare la tabella aggiornata
+                    bootstrap.Modal.getInstance(modalEl)?.hide();
                     document.getElementById('btnCerca').click();
                 } else {
                     alert(response.message);
                 }
             })
-            .catch(err => alert("Errore durante il salvataggio: " + err.message));
+            .catch(err => alert("Errore durante il salvataggio: " + err));
         }
 
+        // Intercettazione del submit nel popup
+        document.addEventListener("submit", function (e) {
+            if (e.target && e.target.id === "formDistintaBase") {
+                e.preventDefault();
+                salvaNuovaDistinta();
+            }
+        });
     </script>
 }

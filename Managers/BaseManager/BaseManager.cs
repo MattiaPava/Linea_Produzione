@@ -60,32 +60,65 @@ namespace Linea_Produzione.Managers.BaseManager
             }).ToList();
         }
 
-        // Aggiungi questo metodo in fondo alla classe BaseManager
-        public bool SalvaNuovaDistinta(DistintaBaseModel model)
+        public bool SalvaDistintaBase(DistintaBaseModel model)
         {
             try
             {
-                // Mappiamo il modello proveniente dalla View verso l'oggetto reale del DB
-                var nuovaEntita = new DistintaBase // Sostituisci con la classe reale mappata su EF se diversa
+                if (model.Id == 0)
                 {
-                    Id = model.Id,
-                    IdUtente = model.IdUtente,
-                    Codice = model.Codice,
-                    Descrizione = model.Descrizione,
-                    DataInizio = model.DataInizio,
-                    Versione = model.Versione,
-                    Stato = 1 // Stato iniziale automatico
-                };
+                    // ==========================================
+                    // LOGICA DI INSERIMENTO (NUOVA DISTINTA)
+                    // ==========================================
+                    var nuovaEntita = new DistintaBase
+                    {
+                        // NOTA: Non mappiamo l'Id. Essendo a 0, lasciamo che SQL Server 
+                        // lo generi automaticamente tramite la proprietà IDENTITY.
+                        IdUtente = model.IdUtente,
+                        Codice = model.Codice,
+                        Descrizione = model.Descrizione,
+                        DataInizio = model.DataInizio,
+                        Versione = model.Versione,
+                        Stato = (short)model.Stato
+                    };
 
-                _context.DistinteBase.Add(nuovaEntita);
+                    _context.DistinteBase.Add(nuovaEntita);
+                }
+                else
+                {
+                    // ==========================================
+                    // LOGICA DI MODIFICA (DISTINTA ESISTENTE)
+                    // ==========================================
+                    // Recuperiamo il record reale dal database per permettere a EF di tracciarlo
+                    var entitaEsistente = _context.DistinteBase.Find(model.Id);
 
-                // Eseguiamo il COMMIT effettivo sul Database
+                    if (entitaEsistente == null)
+                    {
+                        // Se per qualche motivo il record è stato eliminato nel frattempo
+                        return false;
+                    }
+
+                    // Aggiorniamo solo i campi modificabili dell'entità tracciata
+                    entitaEsistente.IdUtente = model.IdUtente;
+                    entitaEsistente.Codice = model.Codice;
+                    entitaEsistente.Descrizione = model.Descrizione;
+                    entitaEsistente.DataInizio = model.DataInizio;
+                    entitaEsistente.Versione = model.Versione;
+
+                    // NOTA: Lo Stato in fase di modifica di solito non si forza a 1, 
+                    // ma mantiene quello attuale sul DB. Se la tua vista gestisce lo stato,
+                    // puoi scommentare la riga sotto:
+                    entitaEsistente.Stato = (short)model.Stato;
+                }
+
+                // Il SaveChanges invierà al DB una INSERT o una UPDATE a seconda del flusso eseguito
                 _context.SaveChanges();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Qui puoi loggare l'errore se necessario
+                // Se hai un logger (es. ILogger<BaseManager>), puoi usarlo qui:
+                // _logger.LogError(ex, "Errore durante il salvataggio della distinta base");
+
                 return false;
             }
         }

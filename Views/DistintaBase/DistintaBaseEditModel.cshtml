@@ -1,9 +1,6 @@
 ﻿@model Linea_Produzione.Models.DistintaBaseModel
 
 <div class="card p-3 shadow-sm">
-    <div class="card-header bg-light d-flex justify-content-between align-items-center">
-        <h5><i class="bi bi-file-earmark-text"></i> Gestione Distinta Base</h5>
-    </div>
 
     <form id="formDistintaBase" asp-action="Salva" asp-controller="DistintaBase" method="post">
         <input type="hidden" asp-for="Id" />
@@ -34,7 +31,7 @@
 
         <div class="row g-3 mt-2">
             <div class="col-md-6">
-                <label asp-for="Stato" class="form-label">Stato Registro</label>
+                <label asp-for="Stato" class="form-label">Stato distinta</label>
                 <select asp-for="Stato" asp-items="ViewBag.StatoOptions" class="form-select form-control" disabled="@Model.ReadOnly">
                 </select>
                 <span asp-validation-for="Stato" class="text-danger small"></span>

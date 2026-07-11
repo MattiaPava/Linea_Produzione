@@ -132,7 +132,7 @@ namespace Linea_Produzione.Controllers
                 return Json(new { success = false, message = "I dati inseriti non sono validi." });
             }
 
-            bool esito = _baseManager.SalvaNuovaDistinta(model);
+            bool esito = _baseManager.SalvaDistintaBase(model);
 
             if (esito)
             {
