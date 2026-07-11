@@ -8,6 +8,6 @@
         public string Descrizione { get; set; }
         public DateTime DataInizio { get; set; }
         public string Versione { get; set; }
-        public string Stato { get; set; }
+        public short Stato { get; set; }
     }
 }

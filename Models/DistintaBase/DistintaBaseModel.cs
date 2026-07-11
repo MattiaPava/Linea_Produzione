@@ -33,9 +33,7 @@ namespace Linea_Produzione.Models
         [StringLength(12, ErrorMessage = "La versione non può superare i 12 caratteri.")]
         public string Versione { get; set; } // NVARCHAR (12) NOT NULL
 
-        // NESSUN [Required] perché sul DB è NULL. 
-        // Grazie a '#nullable disable' viaggerà come null senza rompere il ModelState.IsValid!
-        [StringLength(64, ErrorMessage = "Lo stato non può superare i 64 caratteri.")]
-        public string Stato { get; set; } // NVARCHAR (64) NULL
+        [Required(ErrorMessage = "Lo stato distinta è obbligatorio.")]
+        public StatoDistinta Stato { get; set; } // SMALLINT NOT NULL
     }
 }

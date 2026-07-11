@@ -1,45 +1,63 @@
 ﻿@model Linea_Produzione.Models.DistintaBaseModel
 
-<form id="formDistintaBase">
-    <input type="hidden" asp-for="IdUtente" />
-
-    <input type="hidden" asp-for="Id" />
-
-    <div class="row g-3">
-        <div class="col-md-2">
-            <label asp-for="Id" class="form-label small mb-1">ID</label>
-            <input asp-for="Id" class="form-control" readonly />
-        </div>
-
-        <div class="col-md-4">
-            <label asp-for="Codice" class="form-label small mb-1">Codice</label>
-            <input asp-for="Codice" class="form-control" disabled="@Model.ReadOnly" />
-        </div>
-
-        <div class="col-md-3">
-            <label asp-for="Versione" class="form-label small mb-1">Versione</label>
-            <input asp-for="Versione" class="form-control" disabled="@Model.ReadOnly" />
-        </div>
-
-        <div class="col-md-3">
-            <label asp-for="DataInizio" class="form-label small mb-1">Data Inizio</label>
-            <input asp-for="DataInizio" type="date" class="form-control" asp-format="{0:yyyy-MM-dd}" disabled="@Model.ReadOnly" />
-        </div>
-
-        <div class="col-12">
-            <label asp-for="Descrizione" class="form-label small mb-1">Descrizione</label>
-            <textarea asp-for="Descrizione" class="form-control" rows="2" disabled="@Model.ReadOnly"></textarea>
-        </div>
+<div class="card p-3 shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5><i class="bi bi-file-earmark-text"></i> Gestione Distinta Base</h5>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mt-4">
-        @if (Model.ShowCloseButton)
-        {
-            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Chiudi</button>
-        }
-        @if (!Model.ReadOnly)
-        {
-            <button type="button" class="btn btn-primary btn-sm" onclick="salvaNuovaDistinta()">Salva</button>
-        }
-    </div>
-</form>
+    <form id="formDistintaBase" asp-action="Salva" asp-controller="DistintaBase" method="post">
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="IdUtente" />
+        <input type="hidden" asp-for="ReadOnly" />
+        <input type="hidden" asp-for="ShowCloseButton" />
+
+        <div class="row g-3 mt-1">
+            <div class="col-md-4">
+                <label asp-for="Codice" class="form-label">Codice</label>
+                <input asp-for="Codice" class="form-control" type="text" disabled="@Model.ReadOnly" />
+                <span asp-validation-for="Codice" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="Versione" class="form-label">Versione</label>
+                <input asp-for="Versione" class="form-control" type="text" disabled="@Model.ReadOnly" />
+                <span asp-validation-for="Versione" class="text-danger small"></span>
+            </div>
+
+            <div class="col-md-4">
+                <label asp-for="DataInizio" class="form-label">Data Inizio</label>
+                <input asp-for="DataInizio" class="form-control" type="date"
+                       value="@Model.DataInizio.ToString("yyyy-MM-dd")" disabled="@Model.ReadOnly" />
+                <span asp-validation-for="DataInizio" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-md-6">
+                <label asp-for="Stato" class="form-label">Stato Registro</label>
+                <select asp-for="Stato" asp-items="ViewBag.StatoOptions" class="form-select form-control" disabled="@Model.ReadOnly">
+                </select>
+                <span asp-validation-for="Stato" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-md-12">
+                <label asp-for="Descrizione" class="form-label">Descrizione</label>
+                <textarea asp-for="Descrizione" class="form-control" rows="2" disabled="@Model.ReadOnly"></textarea>
+                <span asp-validation-for="Descrizione" class="text-danger small"></span>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            @if (Model.ShowCloseButton)
+            {
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Chiudi</button>
+            }
+            @if (!Model.ReadOnly)
+            {
+                <button type="button" class="btn btn-primary btn-sm" onclick="salvaNuovaDistinta()">Salva</button>
+            }
+        </div>
+    </form>
+</div>

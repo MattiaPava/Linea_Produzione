@@ -1,8 +1,11 @@
-using System;
-using System.Linq;
+using Humanizer.Localisation;
 using Linea_Produzione.Managers.BaseManager;
 using Linea_Produzione.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Linea_Produzione.Controllers
 {
@@ -28,12 +31,16 @@ namespace Linea_Produzione.Controllers
             return View(searchModel);
         }
 
-        // 2. Gestisce la ricerca AJAX sulla griglia
+        // 2. Gestisce la ricerca AJAX sulla griglia - MODIFICATO CON MAPPING PULITO
         [HttpGet]
         public IActionResult Ricerca(DistintaBaseSearchModel search)
         {
             var risultato = _baseManager.CercaDistintaBase(search);
-            return Json(risultato);
+
+            // Applica il mapping per convertire l'Enum e formattare le proprietà prima dell'invio
+            var risultatoMappato = MapToGridModel(risultato);
+
+            return Json(risultatoMappato);
         }
 
         // 4. Inizializza il modello per la creazione e restituisce la Partial View
@@ -44,11 +51,74 @@ namespace Linea_Produzione.Controllers
             {
                 IdUtente = idUtente,
                 Id = 0,
-                DataInizio = DateTime.Today, // Impostiamo la data di oggi come default
-                Versione = "01",            // Primo rilascio di default
-                ReadOnly = false,           // Sblocca i campi in scrittura!
+                DataInizio = DateTime.Today,
+                Versione = "01",
+                Stato = StatoDistinta.Created,
+                ReadOnly = false,
                 ShowCloseButton = true
             };
+
+            ViewBag.StatoOptions = GetStatoSelectList(model.Stato, isNuovo: true);
+
+            return PartialView("DistintaBaseEditModel", model);
+        }
+
+        // NEW. Carica la maschera in modalità MODIFICA (Campi editabili, Stato gestito)
+        [HttpGet]
+        public IActionResult Modifica(long id)
+        {
+            var searchModel = new DistintaBaseSearchModel { Id = id };
+            var distinta = _baseManager.CercaDistintaBase(searchModel).FirstOrDefault();
+
+            if (distinta == null)
+            {
+                return NotFound("Distinta base non trovata.");
+            }
+
+            var model = new DistintaBaseModel
+            {
+                Id = distinta.Id,
+                IdUtente = distinta.IdUtente,
+                Codice = distinta.Codice,
+                Descrizione = distinta.Descrizione,
+                DataInizio = distinta.DataInizio,
+                Versione = distinta.Versione,
+                Stato = (StatoDistinta)distinta.Stato,
+                ReadOnly = false,
+                ShowCloseButton = true
+            };
+
+            ViewBag.StatoOptions = GetStatoSelectList(model.Stato, isNuovo: false);
+
+            return PartialView("DistintaBaseEditModel", model);
+        }
+
+        // 3. Carica il Riepilogo parziale in sola lettura
+        [HttpGet]
+        public IActionResult Riepilogo(long id)
+        {
+            var searchModel = new DistintaBaseSearchModel { Id = id };
+            var distinta = _baseManager.CercaDistintaBase(searchModel).FirstOrDefault();
+
+            if (distinta == null)
+            {
+                return NotFound("Distinta base non trovata.");
+            }
+
+            var model = new DistintaBaseModel
+            {
+                Id = distinta.Id,
+                IdUtente = distinta.IdUtente,
+                Codice = distinta.Codice,
+                Descrizione = distinta.Descrizione,
+                DataInizio = distinta.DataInizio,
+                Versione = distinta.Versione,
+                Stato = (StatoDistinta)distinta.Stato,
+                ReadOnly = true,
+                ShowCloseButton = false
+            };
+
+            ViewBag.StatoOptions = GetStatoSelectList(model.Stato, isNuovo: false);
 
             return PartialView("DistintaBaseEditModel", model);
         }
@@ -62,7 +132,6 @@ namespace Linea_Produzione.Controllers
                 return Json(new { success = false, message = "I dati inseriti non sono validi." });
             }
 
-            // Invochiamo il manager per scrivere fisicamente sul database
             bool esito = _baseManager.SalvaNuovaDistinta(model);
 
             if (esito)
@@ -73,35 +142,82 @@ namespace Linea_Produzione.Controllers
             return Json(new { success = false, message = "Errore durante il salvataggio a database." });
         }
 
-        // 3. Carica il Riepilogo parziale usando SEMPRE CercaDistintaBase
-        [HttpGet]
-        public IActionResult Riepilogo(long id)
+        #region Helper Methods
+
+        /// <summary>
+        /// NUOVO METODO: Mappa l'output grezzo in un oggetto anonimo pulito.
+        /// Converte l'Enum direttamente nella stringa tradotta dal file .resx.
+        /// </summary>
+        private IEnumerable<object> MapToGridModel(IEnumerable<dynamic> listaRaw)
         {
-            // Istanziamo il modello di ricerca configurando solo l'ID richiesto
-            var searchModel = new DistintaBaseSearchModel { Id = id };
+            if (listaRaw == null) return Enumerable.Empty<object>();
 
-            // Invochiamo l'unica funzione del manager ed estraiamo il primo risultato
-            var distinta = _baseManager.CercaDistintaBase(searchModel).FirstOrDefault();
+            return listaRaw.Select(e => {
+                // Cast di sicurezza del valore del DB nell'Enum strutturato
+                StatoDistinta statoEnum = (StatoDistinta)e.Stato;
 
-            if (distinta == null)
+                // Recupero del testo localizzato dal file di risorse .resx
+                string resourceKey = $"Stato_{statoEnum}";
+                string statoTradotto = Resources.AppResources.ResourceManager.GetString(resourceKey) ?? statoEnum.ToString();
+
+                // Generazione del JSON finale pulito, privo di ID o codici numerici residui per lo stato
+                return new
+                {
+                    Id = e.Id,
+                    Codice = e.Codice,
+                    Descrizione = e.Descrizione,
+                    Versione = e.Versione,
+                    DataInizio = e.DataInizio.ToString("dd/MM/yyyy"), // Formattazione nativa della data
+                    Stato = statoTradotto                             // Diventa direttamente "Creato", "In Definizione", ecc.
+                };
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Genera la lista di opzioni localizzate per l'HTML Select dello Stato, applicando le regole di business.
+        /// </summary>
+        private List<SelectListItem> GetStatoSelectList(StatoDistinta statoAttuale, bool isNuovo)
+        {
+            var list = new List<SelectListItem>();
+
+            if (isNuovo)
             {
-                return NotFound("Distinta base non trovata.");
+                list.Add(new SelectListItem
+                {
+                    Value = ((short)StatoDistinta.Created).ToString(),
+                    Text = Resources.AppResources.Stato_Created,
+                    Selected = true
+                });
+            }
+            else
+            {
+                foreach (StatoDistinta st in Enum.GetValues(typeof(StatoDistinta)))
+                {
+                    if (statoAttuale == StatoDistinta.Modified && st != StatoDistinta.Modified && st != StatoDistinta.Archived)
+                    {
+                        continue;
+                    }
+
+                    if (statoAttuale == StatoDistinta.Archived && st != StatoDistinta.Archived)
+                    {
+                        continue;
+                    }
+
+                    string resourceKey = $"Stato_{st}";
+                    string localizedText = Resources.AppResources.ResourceManager.GetString(resourceKey) ?? st.ToString();
+
+                    list.Add(new SelectListItem
+                    {
+                        Value = ((short)st).ToString(),
+                        Text = localizedText,
+                        Selected = (st == statoAttuale)
+                    });
+                }
             }
 
-            // Mappatura finale per la Partial View originaria
-            var model = new DistintaBaseModel
-            {
-                Id = distinta.Id,
-                Codice = distinta.Codice,
-                Descrizione = distinta.Descrizione,
-                DataInizio = distinta.DataInizio,
-                Versione = distinta.Versione,
-                Stato = distinta.Stato,
-                ReadOnly = true,
-                ShowCloseButton = false
-            };
-
-            return PartialView("DistintaBaseEditModel", model);
+            return list;
         }
+
+        #endregion
     }
 }

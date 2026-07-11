@@ -74,7 +74,7 @@ namespace Linea_Produzione.Managers.BaseManager
                     Descrizione = model.Descrizione,
                     DataInizio = model.DataInizio,
                     Versione = model.Versione,
-                    Stato = "In Definizione" // Stato iniziale automatico
+                    Stato = 1 // Stato iniziale automatico
                 };
 
                 _context.DistinteBase.Add(nuovaEntita);

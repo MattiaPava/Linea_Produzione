@@ -54,17 +54,15 @@ const GridManager = {
     },
 
     /**
-     * NUOVO METODO: Svuota forzatamente la selezione attiva e 
+     * Svuota forzatamente la selezione attiva e 
      * notifica la pagina tramite il callback onDeselect.
      */
     clearSelection: function (tbodyId) {
         const config = this._cache[tbodyId];
         if (!config) return;
 
-        // Disabilita i pulsanti Modifica ed Elimina
         this.resetButtons(config.btnModificaId, config.btnEliminaId);
 
-        // Se la pagina ha registrato la funzione onDeselect (che nasconde i tab), la eseguiamo
         if (config.callbacks && typeof config.callbacks.onDeselect === "function") {
             config.callbacks.onDeselect();
         }

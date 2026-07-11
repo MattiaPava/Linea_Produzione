@@ -173,7 +173,7 @@
                 .catch(err => alert("Impossibile aprire il popup: " + err.message));
         }
 
-                function salvaNuovaDistinta() {
+        function salvaNuovaDistinta() {
             // 1. Recuperiamo l'elemento del Modal
             const modalEl = document.getElementById('modalGenerico');
 
@@ -203,7 +203,7 @@
             })
             .then(response => {
                 if (response.success) {
-                    alert(response.message);
+                    //alert(response.message);
 
                     // Chiusura del modal nativo
                     const modalInstance = bootstrap.Modal.getInstance(modalEl);

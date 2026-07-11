@@ -6,13 +6,15 @@ IF OBJECT_ID('[dbo].[DistinteBase]', 'U') IS NOT NULL
 GO
 
 CREATE TABLE [dbo].[DistinteBase] (
-    [Id]          BIGINT         IDENTITY (1, 1) NOT NULL,
-    [IdUtente]    BIGINT         NOT NULL,
-    [Codice]      NVARCHAR (12)  NOT NULL,
-    [Descrizione] NVARCHAR (512) NULL,
-    [DataInizio]  DATETIME2 (7)  NOT NULL,
-    [Versione]    NVARCHAR (12)  NOT NULL,
-    [Stato]       NVARCHAR (64)  NULL,
+    [Id]          BIGINT          IDENTITY (1, 1) NOT NULL,
+    [IdUtente]    BIGINT          NOT NULL,
+    [Codice]      NVARCHAR (12)   NOT NULL,
+    [Descrizione] NVARCHAR (512)  NULL,
+    [DataInizio]  DATETIME2 (7)   NOT NULL,
+    [Versione]    NVARCHAR (12)   NOT NULL,
+    
+    -- MODIFICA: Enumeratore short, obbligatorio con default a 0 (None)
+    [Stato]       SMALLINT        CONSTRAINT [DF_DistinteBase_Stato] DEFAULT (0) NOT NULL,
     
     -- Chiave Primaria con ordinamento crescente (Clustered Index)
     CONSTRAINT [PK_DistinteBase] PRIMARY KEY CLUSTERED ([Id] ASC),
