@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Linea_Produzione.Models
 {
@@ -11,6 +12,10 @@ namespace Linea_Produzione.Models
         public string Versione { get; set; }
         public string Descrizione { get; set; }
         public DateTime? DataInizio { get; set; }
-        public string Stato { get; set; }   
+        public string Stato { get; set; }
+
+        // PARAMETRI DI PAGINAZIONE (Inizializzati con default intelligenti)
+        public int Page { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
     }
 }

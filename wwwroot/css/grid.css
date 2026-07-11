@@ -158,6 +158,71 @@
         pointer-events: none;
     }
 
+/* Contenitore principale del footer della griglia */
+.grid-footer {
+    display: flex;
+    justify-content: space-between; /* Mette lo spazio tra il gruppo di sx e l'elemento di dx */
+    align-items: center; /* Centra verticalmente gli elementi */
+    width: 100%;
+}
+
+/* Raggruppa i controlli a sinistra */
+.grid-footer-controls {
+    display: flex;
+    align-items: center;
+    gap: 20px; /* Regola questo valore per il padding in mezzo tra select e bottoni */
+}
+
+/* --- STILE PAGINAZIONE ALLUNGATO --- */
+
+.pagination-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Spazio tra i pulsanti */
+}
+
+.page-custom {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    /* Rende il pulsante allungato */
+    padding: 8px 20px;
+    min-width: 32px; /* Larghezza minima generosa */
+    height: 26px; /* Altezza fissa per coerenza */
+
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #495057;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px; /* Arrotondamento moderno */
+
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+    /* Hover: leggero cambio colore e bordi */
+    .page-custom:hover:not(:disabled) {
+        background-color: #f8f9fa;
+        border-color: #0d6efd;
+        color: #0d6efd;
+    }
+
+    /* Stato Attivo (Pagina corrente): più marcato */
+    .page-custom.active {
+        background-color: #0d6efd;
+        color: #ffffff;
+        border-color: #0d6efd;
+        box-shadow: 0 4px 6px -1px rgba(13, 110, 253, 0.3);
+    }
+
+    /* Disabilitato */
+    .page-custom:disabled {
+        background-color: #e9ecef;
+        color: #adb5bd;
+        border-color: #dee2e6;
+        cursor: not-allowed;
+    }
 
 /* =========================================================================
    SEZIONE 4: ELEMENTI DI TESTO E BADGE (Indicatori e Stati)

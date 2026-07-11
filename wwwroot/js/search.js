@@ -1,90 +1,110 @@
 ﻿// wwwroot/js/search.js
 
-const SearchManager = {
-    init: function (config) {
-        const form = document.getElementById(config.formId || "searchForm");
+const SearchManager = (function () {
+    let _config = {};
+
+    function init(config) {
+        _config = config;
+        const form = document.getElementById(_config.formId);
         if (!form) return;
 
-        form.addEventListener("submit", (e) => {
+        // Gestione Submit
+        form.addEventListener("submit", function (e) {
             e.preventDefault();
-            this.execute(config);
+            const hiddenPage = document.getElementById("hiddenPage");
+            if (hiddenPage) hiddenPage.value = 1; // Resetta pagina a 1 su nuova ricerca
+            eseguiChiamata();
         });
 
-        const btnCancella = document.getElementById(config.btnCancellaId || "btnCancella");
+        // Gestione Cancella
+        const btnCancella = document.getElementById(_config.btnCancellaId);
         if (btnCancella) {
-            btnCancella.addEventListener("click", () => {
+            btnCancella.addEventListener("click", function () {
                 form.reset();
-                this.execute(config);
+                const hiddenPage = document.getElementById("hiddenPage");
+                const hiddenPageSize = document.getElementById("hiddenPageSize");
+                const selectPageSize = document.getElementById("selectPageSize");
+
+                if (hiddenPage) hiddenPage.value = 1;
+                if (hiddenPageSize && selectPageSize) {
+                    hiddenPageSize.value = "20";
+                    selectPageSize.value = "20";
+                }
+                eseguiChiamata();
             });
         }
+    }
 
-        this.execute(config);
-    },
-
-    execute: function (config) {
-        const tbodyId = config.tbodyId || "gridBody";
-
-        // ==========================================
-        // MODIFICA: Svuota la selezione prima del Fetch.
-        // Questo spegne i pulsanti e NASCONDE i tab.
-        // ==========================================
-        if (typeof GridManager !== "undefined") {
-            GridManager.clearSelection(tbodyId);
-        }
-
-        const form = document.getElementById(config.formId || "searchForm");
-        const tbody = document.getElementById(tbodyId);
+    function eseguiChiamata() {
+        const form = document.getElementById(_config.formId);
+        const tbody = document.getElementById(_config.tbodyId);
         if (!form || !tbody) return;
 
-        const formData = new FormData(form);
-        const queryParams = new URLSearchParams(formData).toString();
-        const colspan = config.colspan || 7;
+        // Reset pulsanti di riga
+        if (typeof GridManager !== "undefined" && GridManager.deselezionaCorrente) {
+            GridManager.deselezionaCorrente();
+        }
 
         tbody.innerHTML = `
             <tr>
-                <td colspan="${colspan}" class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
+                <td colspan="${_config.colspan}" class="text-center py-4 text-muted">
+                    <div class="spinner-border text-primary spinner-border-sm me-2"></div> Ricerca in corso...
                 </td>
             </tr>`;
 
-        fetch(`${config.url}?${queryParams}`)
-            .then(response => {
-                if (!response.ok) throw new Error("Errore di rete");
-                return response.json();
+        const formData = new FormData(form);
+        const searchParams = new URLSearchParams(formData);
+
+        fetch(`${_config.url}?${searchParams.toString()}`, {
+            method: 'GET',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
+                return res.json();
             })
             .then(data => {
                 tbody.innerHTML = "";
 
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="${colspan}" class="text-center text-muted py-4">
-                                <i class="bi bi-search display-6 d-block mb-2"></i>
-                                ${config.emptyMessage || "Nessun record corrisponde ai criteri di ricerca."}
-                            </td>
-                        </tr>`;
+                // Legge i dati sia che arrivino nel nuovo formato paginato (data.items), sia nel vecchio (data)
+                const items = Array.isArray(data) ? data : (data.items || []);
+
+                if (items.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${_config.colspan}" class="text-center text-muted py-4">${_config.emptyMessage}</td></tr>`;
+                    if (typeof window.aggiornaInterfacciaPaginazione === "function") {
+                        window.aggiornaInterfacciaPaginazione({ currentPage: 1, totalPages: 1, totalItems: 0 });
+                    }
                     return;
                 }
 
-                data.forEach(item => {
-                    const rowHTML = config.renderRow(item);
-                    tbody.insertAdjacentHTML('beforeend', rowHTML);
+                // Render delle righe
+                let htmlRows = "";
+                items.forEach(item => {
+                    htmlRows += _config.renderRow(item);
                 });
+                tbody.innerHTML = htmlRows;
 
-                // Se l'esito della nuova ricerca produce 1 sola riga, la ri-seleziona e ri-apre i tab
-                if (typeof GridManager !== "undefined") {
-                    GridManager.checkAutoSelect(tbodyId);
+                // Aggiorna la barra della paginazione (se i metadati esistono)
+                if (typeof window.aggiornaInterfacciaPaginazione === "function" && data.totalPages) {
+                    window.aggiornaInterfacciaPaginazione({
+                        currentPage: data.currentPage,
+                        totalPages: data.totalPages,
+                        totalItems: data.totalItems
+                    });
                 }
             })
             .catch(err => {
-                console.error("SearchManager Error:", err);
+                console.error("Errore AJAX in SearchManager:", err);
                 tbody.innerHTML = `
-                    <tr>
-                        <td colspan="${colspan}" class="text-center text-danger py-4">
-                            <i class="bi bi-exclamation-triangle display-6 d-block mb-2"></i>
-                            Impossibile recuperare i dati dal server.
-                        </td>
-                    </tr>`;
+                <tr>
+                    <td colspan="${_config.colspan}" class="text-center text-danger py-4">
+                        <i class="bi bi-exclamation-triangle fs-3 d-block mb-2"></i>
+                        Impossibile recuperare i dati dal server.<br>
+                        <small class="text-muted">${err.message}</small>
+                    </td>
+                </tr>`;
             });
     }
-};
+
+    return { init: init, triggerSearch: eseguiChiamata };
+})();

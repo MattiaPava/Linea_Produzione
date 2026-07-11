@@ -8,6 +8,8 @@
     <div id="sidebarContent" class="w-100">
         <form id="searchForm" autocomplete="off">
             <input type="hidden" asp-for="IdUtente" />
+            <input type="hidden" asp-for="Page" id="hiddenPage" value="1" />
+            <input type="hidden" asp-for="PageSize" id="hiddenPageSize" value="20" />
 
             <div class="d-flex gap-2 mb-4">
                 <button type="submit" id="btnCerca" class="btn btn-primary flex-grow-1 btn-sm"><i class="bi bi-search"></i> Cerca</button>
@@ -54,11 +56,7 @@
 }
 
 @section Content {
-    @* =========================================================================
-   TOOLBAR CON DISPOSIZIONE ORIGINALE (Nuovo a SX, Titolo al Centro, Comandi a DX)
-   ========================================================================= *@
     <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-
         <div>
             <button type="button" class="btn btn-primary btn-sm px-3" onclick="apriPopupNuovo(@Model.IdUtente)">
                 <i class="bi bi-plus-circle me-1"></i> Nuovo
@@ -95,6 +93,31 @@
             </thead>
             <tbody id="gridBody"></tbody>
         </table>
+
+        <div class="d-flex align-items-center justify-content-between px-3 py-2 bg-light border-top" style="font-size: 0.85rem;">
+
+            <div class="d-flex align-items-center gap-4">
+
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted">Righe per pagina:</span>
+                    <select id="selectPageSize" class="form-select form-select-sm" style="width: 75px; padding: 2px 8px; font-size: 0.82rem;">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+
+                <div class="d-flex gap-1" id="containerPaginazione"></div>
+
+            </div>
+
+            <div class="text-end">
+                <span id="infoConteggio" class="text-muted fw-medium"></span>
+            </div>
+
+        </div>
     </div>
 
     <partial name="_DistintaBaseTabs" />
@@ -151,12 +174,19 @@
                 if (_idSelezionato) apriPopupModifica(_idSelezionato, @Model.IdUtente);
             });
 
-            // Gestione pulsante Elimina (Genera l'alert localmente a zero latenza)
+            // Gestione pulsante Elimina
             document.getElementById("btnElimina").addEventListener("click", function () {
                 if (_idSelezionato) apriPopupConfermaElimina(_idSelezionato);
             });
 
-            // 2. Inizializzazione di SearchManager
+            // INTERCETTAZIONE CAMBIO PAGE SIZE
+            document.getElementById("selectPageSize").addEventListener("change", function() {
+                document.getElementById("hiddenPageSize").value = this.value;
+                document.getElementById("hiddenPage").value = 1; // Resetta alla prima pagina quando cambia il dimensionamento
+                SearchManager.triggerSearch();
+            });
+
+            // 2. Inizializzazione di SearchManager modificato per raccogliere la risposta strutturata
             SearchManager.init({
                 formId: "searchForm",
                 tbodyId: "gridBody",
@@ -168,7 +198,7 @@
                 emptyMessage: "Nessuna distinta base corrisponde ai criteri di ricerca.",
                 renderRow: function (item) {
                     let badgeClass = "bg-success";
-                    if (item.stato === "Creato" || item.stato === "Created") badgeClass = "bg-warning text-dark";
+                    if (item.stato === "Creato" || item.stato === "Created" || item.stato === "In Definizione") badgeClass = "bg-warning text-dark";
                     else if (item.stato === "Archived" || item.stato === "Archiviato") badgeClass = "bg-light text-dark border";
 
                     return `
@@ -182,57 +212,70 @@
                 }
             });
 
-            // Caricamento asincrono iniziale
-            document.getElementById('btnCerca').click();
+            // Caricamento iniziale automatico
+            SearchManager.triggerSearch();
         });
 
-        // Generazione dinamica e apertura del popup di allert (Client-side)
+        // Funzione globale chiamata dai pulsanti delle pagine numerate
+        function cambiaPagina(numeroPagina) {
+            document.getElementById("hiddenPage").value = numeroPagina;
+            SearchManager.triggerSearch();
+        }
+
+                function aggiornaInterfacciaPaginazione(meta) {
+            document.getElementById("infoConteggio").innerText = `(Totale: ${meta.totalItems} record)`;
+
+            const container = document.getElementById("containerPaginazione");
+            container.innerHTML = "";
+
+            // Aggiungi una classe al contenitore per gestire lo spazio (gap)
+            container.className = "pagination-wrapper";
+
+            for (let i = 1; i <= meta.totalPages; i++) {
+                const isCorrente = i === meta.currentPage;
+
+                const btn = document.createElement("button");
+                btn.type = "button";
+                // Manteniamo 'btn' ma rimuoviamo le classi che lo rimpiccioliscono
+                btn.className = isCorrente ? "page-custom active" : "page-custom";
+                btn.innerText = i;
+
+                if (!isCorrente) {
+                    btn.onclick = () => cambiaPagina(i);
+                } else {
+                    btn.disabled = true;
+                }
+                container.appendChild(btn);
+            }
+        }
+
         function apriPopupConfermaElimina(id) {
             const modalEl = document.getElementById('modalGenerico');
-
             modalEl.querySelector('.modal-title').innerHTML = `<i class="bi bi-exclamation-octagon me-2 text-danger"></i>Eliminazione Record`;
             modalEl.querySelector('.modal-body').innerHTML = `
                 <div class="text-center my-3">
-                    <div class="mb-3">
-                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3.5rem;"></i>
-                    </div>
-                    <p class="fw-semibold text-secondary px-2" style="font-size: 1.1rem;">
-                        Confermi la cancellazione della distinta base?
-                    </p>
+                    <div class="mb-3"><i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3.5rem;"></i></div>
+                    <p class="fw-semibold text-secondary px-2" style="font-size: 1.1rem;">Confermi la cancellazione della distinta base?</p>
                 </div>
                 <div class="modal-footer justify-content-start px-0 pb-0 pt-3 border-top">
-                    <button type="button" class="btn btn-danger btn-sm px-3" onclick="eseguiEliminazione(${id})">
-                        <i class="bi bi-trash me-1"></i> Conferma
-                    </button>
-                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 ms-auto" data-bs-dismiss="modal">
-                        Annulla
-                    </button>
+                    <button type="button" class="btn btn-danger btn-sm px-3" onclick="eseguiEliminazione(${id})"><i class="bi bi-trash me-1"></i> Conferma</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 ms-auto" data-bs-dismiss="modal">Annulla</button>
                 </div>`;
-
             new bootstrap.Modal(modalEl).show();
         }
 
-        // Action reale: Chiude il popup all'istante e fa la chiamata POST al DB
         function eseguiEliminazione(id) {
             const modalEl = document.getElementById('modalGenerico');
             bootstrap.Modal.getInstance(modalEl)?.hide();
-
-            fetch(`@Url.Action("Elimina", "DistintaBase")?id=${id}`, {
-                method: 'POST',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
+            fetch(`@Url.Action("Elimina", "DistintaBase")?id=${id}`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(res => res.ok ? res.json() : Promise.reject("Errore di risposta dal server."))
             .then(response => {
-                if (response.success) {
-                    document.getElementById('btnCerca').click();
-                } else {
-                    alert(response.message);
-                }
+                if (response.success) SearchManager.triggerSearch();
+                else alert(response.message);
             })
             .catch(err => alert("Errore durante la rimozione della distinta: " + err));
         }
 
-        // Gestione Finestre Modali Standard (Nuovo/Modifica) da Server
         function gestisciPopup(url, titolo) {
             fetch(url)
                 .then(res => res.ok ? res.text() : Promise.reject("Errore nel caricamento del modulo."))
@@ -245,13 +288,8 @@
                 .catch(err => alert("Impossibile aprire il popup: " + err));
         }
 
-        function apriPopupNuovo(idUtente) {
-            gestisciPopup(`@Url.Action("Nuovo", "DistintaBase")?idUtente=${idUtente}`, `<i class="bi bi-plus-circle me-2"></i>Nuova Distinta Base`);
-        }
-
-        function apriPopupModifica(id, idUtente) {
-            gestisciPopup(`@Url.Action("Modifica", "DistintaBase")?id=${id}&idUtente=${idUtente}`, `<i class="bi bi-pencil-square me-2"></i>Modifica Distinta Base`);
-        }
+        function apriPopupNuovo(idUtente) { gestisciPopup(`@Url.Action("Nuovo", "DistintaBase")?idUtente=${idUtente}`, `<i class="bi bi-plus-circle me-2"></i>Nuova Distinta Base`); }
+        function apriPopupModifica(id, idUtente) { gestisciPopup(`@Url.Action("Modifica", "DistintaBase")?id=${id}&idUtente=${idUtente}`, `<i class="bi bi-pencil-square me-2"></i>Modifica Distinta Base`); }
 
         function salvaNuovaDistinta() {
             const modalEl = document.getElementById('modalGenerico');
@@ -267,7 +305,7 @@
             .then(response => {
                 if (response.success) {
                     bootstrap.Modal.getInstance(modalEl)?.hide();
-                    document.getElementById('btnCerca').click();
+                    SearchManager.triggerSearch();
                 } else {
                     alert(response.message);
                 }

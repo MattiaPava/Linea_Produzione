@@ -32,16 +32,41 @@ namespace Linea_Produzione.Controllers
             return View(searchModel);
         }
 
-        // 2. Gestisce la ricerca AJAX sulla griglia - MODIFICATO CON MAPPING PULITO
         [HttpGet]
         public IActionResult Ricerca(DistintaBaseSearchModel search)
         {
-            var risultato = _baseManager.CercaDistintaBase(search);
+            // 1. Recuperiamo l'elenco completo grezzo dal DB/Manager basandoci sui filtri
+            var risultatoCompleto = _baseManager.CercaDistintaBase(search) ?? Enumerable.Empty<dynamic>();
 
-            // Applica il mapping per convertire l'Enum e formattare le proprietà prima dell'invio
-            var risultatoMappato = MapToGridModel(risultato);
+            // 2. Calcoliamo il conteggio totale prima di effettuare la paginazione
+            int totalItems = risultatoCompleto.Count();
 
-            return Json(risultatoMappato);
+            // Evita divisioni per zero
+            int pageSize = search.PageSize > 0 ? search.PageSize : 20;
+            int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+            if (totalPages == 0) totalPages = 1;
+
+            // Regola di sicurezza sulla pagina corrente
+            if (search.Page < 1) search.Page = 1;
+            if (search.Page > totalPages) search.Page = totalPages;
+
+            // 3. Eseguiamo la paginazione in-memory sui dati grezzi
+            var risultatoPaginato = risultatoCompleto
+                .Skip((search.Page - 1) * pageSize)
+                .Take(pageSize);
+
+            // 4. Mappiamo le righe destinate alla griglia usando il tuo metodo localizzato
+            var righeMappate = MapToGridModel(risultatoPaginato);
+
+            // 5. Restituiamo l'oggetto combinato al JS
+            return Json(new
+            {
+                items = righeMappate,
+                currentPage = search.Page,
+                pageSize = pageSize,
+                totalPages = totalPages,
+                totalItems = totalItems
+            });
         }
 
         // 4. Inizializza il modello per la creazione e restituisce la Partial View
