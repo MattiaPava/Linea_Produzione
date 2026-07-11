@@ -64,63 +64,102 @@ namespace Linea_Produzione.Managers.BaseManager
         {
             try
             {
-                if (model.Id == 0)
+                // 1. Validazione preventiva dei campi (sul modello già calcolato)
+                if (!CheckFields(model))
                 {
-                    // ==========================================
-                    // LOGICA DI INSERIMENTO (NUOVA DISTINTA)
-                    // ==========================================
-                    var nuovaEntita = new DistintaBase
-                    {
-                        // NOTA: Non mappiamo l'Id. Essendo a 0, lasciamo che SQL Server 
-                        // lo generi automaticamente tramite la proprietà IDENTITY.
-                        IdUtente = model.IdUtente,
-                        Codice = model.Codice,
-                        Descrizione = model.Descrizione,
-                        DataInizio = model.DataInizio,
-                        Versione = model.Versione,
-                        Stato = (short)model.Stato
-                    };
-
-                    _context.DistinteBase.Add(nuovaEntita);
-                }
-                else
-                {
-                    // ==========================================
-                    // LOGICA DI MODIFICA (DISTINTA ESISTENTE)
-                    // ==========================================
-                    // Recuperiamo il record reale dal database per permettere a EF di tracciarlo
-                    var entitaEsistente = _context.DistinteBase.Find(model.Id);
-
-                    if (entitaEsistente == null)
-                    {
-                        // Se per qualche motivo il record è stato eliminato nel frattempo
-                        return false;
-                    }
-
-                    // Aggiorniamo solo i campi modificabili dell'entità tracciata
-                    entitaEsistente.IdUtente = model.IdUtente;
-                    entitaEsistente.Codice = model.Codice;
-                    entitaEsistente.Descrizione = model.Descrizione;
-                    entitaEsistente.DataInizio = model.DataInizio;
-                    entitaEsistente.Versione = model.Versione;
-
-                    // NOTA: Lo Stato in fase di modifica di solito non si forza a 1, 
-                    // ma mantiene quello attuale sul DB. Se la tua vista gestisce lo stato,
-                    // puoi scommentare la riga sotto:
-                    entitaEsistente.Stato = (short)model.Stato;
+                    return false;
                 }
 
-                // Il SaveChanges invierà al DB una INSERT o una UPDATE a seconda del flusso eseguito
+                // 2. Calcolo dei campi derivati e automatismi di stato
+                CalculatedFields(model);
+
+                // 3. Elaborazione dell'entità (Inserimento o Modifica)
+                if (!SalvaDistintaBaseInternal(model))
+                {
+                    return false;
+                }
+
+                // 4. Persistenza dei dati sul Database
                 _context.SaveChanges();
                 return true;
             }
             catch (Exception ex)
             {
-                // Se hai un logger (es. ILogger<BaseManager>), puoi usarlo qui:
                 // _logger.LogError(ex, "Errore durante il salvataggio della distinta base");
-
                 return false;
             }
+        }
+
+        private bool SalvaDistintaBaseInternal(DistintaBaseModel model)
+        {
+            if (model.Id == 0)
+            {
+                // ==========================================
+                // LOGICA DI INSERIMENTO (NUOVA DISTINTA)
+                // ==========================================
+                var nuovaEntita = new DistintaBase
+                {
+                    IdUtente = model.IdUtente,
+                    Codice = model.Codice,
+                    Descrizione = model.Descrizione,
+                    DataInizio = model.DataInizio,
+                    Versione = model.Versione,
+                    Stato = (short)model.Stato
+                };
+
+                _context.DistinteBase.Add(nuovaEntita);
+            }
+            else
+            {
+                // ==========================================
+                // LOGICA DI MODIFICA (DISTINTA ESISTENTE)
+                // ==========================================
+                var entitaEsistente = _context.DistinteBase.Find(model.Id);
+
+                if (entitaEsistente == null)
+                {
+                    return false; // Il record non esiste più sul DB
+                }
+
+                // Aggiornamento dei campi tracciati da EF
+                entitaEsistente.IdUtente = model.IdUtente;
+                entitaEsistente.Codice = model.Codice;
+                entitaEsistente.Descrizione = model.Descrizione;
+                entitaEsistente.DataInizio = model.DataInizio;
+                entitaEsistente.Versione = model.Versione;
+                entitaEsistente.Stato = (short)model.Stato;
+            }
+
+            return true;
+        }
+
+        private void CalculatedFields(DistintaBaseModel model)
+        {
+            // Se l'Id è diverso da 0 siamo in modifica. 
+            // Se lo stato è ancora "Created", lo facciamo avanzare automaticamente a "Modified".
+            if (model.Id != 0 && model.Stato == StatoDistinta.Created)
+            {
+                model.Stato = StatoDistinta.Modified;
+            }
+        }
+
+        private bool CheckFields(DistintaBaseModel model)
+        {
+            // 1. Controllo "Between" sullo Stato (castato a short/int per verificare il range)
+            // Modifica i valori min (es. 0) e max (es. 3) in base alla tua reale Enum logica
+            int statoValore = (int)model.Stato;
+            if (statoValore < 0 || statoValore > 3)
+            {
+                return false;
+            }
+
+            // 2. Esempio di altri controlli di pulizia/validazione utili in backend
+            //if (string.IsNullOrWhiteSpace(model.Codice))
+            //{
+            //    return false;
+            //}
+
+            return true;
         }
     }
 }
