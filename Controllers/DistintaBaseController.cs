@@ -18,14 +18,15 @@ namespace Linea_Produzione.Controllers
             _baseManager = baseManager;
         }
 
-        // 1. Risponde a: /DistintaBase/DistintaBase
+        // 1. Carica la pagina di gestione principale
         public IActionResult DistintaBase()
         {
-            long idUtenteCorrente = 1;
+            long idUtenteCorrente = 1; // Recuperabile da sessione/claims in produzione
 
             var searchModel = new DistintaBaseSearchModel
             {
-                IdUtente = idUtenteCorrente
+                IdUtente = idUtenteCorrente,
+                Stato = "NonArchiviati" // NUOVO: Imposta il filtro di default per il primo caricamento
             };
 
             return View(searchModel);
@@ -52,7 +53,7 @@ namespace Linea_Produzione.Controllers
                 IdUtente = idUtente,
                 Id = 0,
                 DataInizio = DateTime.Today,
-                Versione = "01",
+                //Versione = "01",
                 Stato = StatoDistinta.Created,
                 ReadOnly = false,
                 ShowCloseButton = true
@@ -140,6 +141,20 @@ namespace Linea_Produzione.Controllers
             }
 
             return Json(new { success = false, message = "Errore durante il salvataggio a database." });
+        }
+
+        // POST: /DistintaBase/Elimina?id=5
+        [HttpPost]
+        public IActionResult Elimina(long id)
+        {
+            bool esito = _baseManager.CancellaDistintaBase(id);
+
+            if (esito)
+            {
+                return Json(new { success = true, message = "Distinta Base eliminata con successo!" });
+            }
+
+            return Json(new { success = false, message = "Impossibile eliminare la distinta base selezionata." });
         }
 
         #region Helper Methods

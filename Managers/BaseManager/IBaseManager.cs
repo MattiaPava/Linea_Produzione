@@ -19,6 +19,8 @@ namespace Linea_Produzione.Managers.BaseManager
         /// <param name="model"></param>
         /// <returns></returns>
         bool SalvaDistintaBase(DistintaBaseModel model);
+
+        bool CancellaDistintaBase(long id);
         #endregion
     }
 }

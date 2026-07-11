@@ -15,37 +15,39 @@ namespace Linea_Produzione.Managers.BaseManager
             _context = context;
         }
 
-        public List<DistintaBaseEntity> CercaDistintaBase(DistintaBaseSearchModel search)
+        #region DistintaBase
+
+        public List<DistintaBaseEntity> CercaDistintaBase(DistintaBaseSearchModel searchModel)
         {
-            if (search == null) return new List<DistintaBaseEntity>();
+            if (searchModel == null) return new List<DistintaBaseEntity>();
 
             var query = _context.DistinteBase.AsQueryable();
 
-            // SE COINVOLGE UN ID SPECIFICO (caso del Riepilogo): cerca direttamente la chiave primaria
-            if (search.Id.HasValue && search.Id.Value > 0)
+            // 1. Filtri di Identificazione (Puntuali o per Utente)
+            query = searchModel.Id.HasValue && searchModel.Id.Value > 0 ? query.Where(d => d.Id == searchModel.Id.Value) : query;
+            query = searchModel.Ids != null && searchModel.Ids.Count > 0 ? query.Where(d => searchModel.Ids.Contains(d.Id)) : query;
+            query = searchModel.IdUtente.HasValue ? query.Where(d => d.IdUtente == searchModel.IdUtente.Value) : query;
+
+            // 2. Filtri della Sidebar (Applicati se valorizzati)
+            query = !string.IsNullOrEmpty(searchModel.Codice) ? query.Where(d => d.Codice.Contains(searchModel.Codice)) : query;
+
+            // Gestione Versione: Estrazione preventiva della stringa pulita ed applicazione del ternario
+            string? versionePulita = !string.IsNullOrEmpty(searchModel.Versione) ? searchModel.Versione.Replace("v", "", StringComparison.OrdinalIgnoreCase).Trim() : null;
+            query = !string.IsNullOrEmpty(versionePulita) ? query.Where(d => d.Versione.Contains(versionePulita)) : query;
+
+            query = !string.IsNullOrEmpty(searchModel.Descrizione) ? query.Where(d => d.Descrizione.Contains(searchModel.Descrizione)) : query;
+            query = searchModel.DataInizio.HasValue ? query.Where(d => d.DataInizio.Date == searchModel.DataInizio.Value.Date) : query;
+
+            // 3. Filtro Stato: Switch Expression integrata perfettamente nella logica a pipeline
+            query = !string.IsNullOrEmpty(searchModel.Stato) ? searchModel.Stato switch
             {
-                query = query.Where(d => d.Id == search.Id.Value);
-            }
-            else
-            {
-                // ALTRIMENTI: Applica il normale comportamento dei filtri della Sidebar
-                query = query.Where(d => d.IdUtente == search.IdUtente);
-
-                if (!string.IsNullOrEmpty(search.Codice))
-                {
-                    query = query.Where(d => d.Codice.Contains(search.Codice));
-                }
-
-                if (!string.IsNullOrEmpty(search.Descrizione))
-                {
-                    query = query.Where(d => d.Descrizione.Contains(search.Descrizione));
-                }
-
-                if (search.DataInizio.HasValue)
-                {
-                    query = query.Where(d => d.DataInizio.Date == search.DataInizio.Value.Date);
-                }
-            }
+                "NonArchiviati" => query.Where(d => d.Stato != (short)StatoDistinta.Archived),
+                "Archiviati" => query.Where(d => d.Stato == (short)StatoDistinta.Archived),
+                "Creati" => query.Where(d => d.Stato == (short)StatoDistinta.Created),
+                "Modificati" => query.Where(d => d.Stato == (short)StatoDistinta.Modified),
+                "Completati" => query.Where(d => d.Stato == (short)StatoDistinta.Completed),
+                _ => query // Caso "None" o default: nessun filtro applicato
+            } : query;
 
             // Proiezione finale nell'entità agganciata alla View
             return query.Select(d => new DistintaBaseEntity
@@ -162,5 +164,34 @@ namespace Linea_Produzione.Managers.BaseManager
 
             return true;
         }
+
+        public bool CancellaDistintaBase(long id)
+        {
+            // Invoca la funzione di cancellazione interna che marca il record come rimosso
+            bool success = CancellaDistintaBaseInternal(id);
+
+            // Se l'entità non è stata trovata o contrassegnata, usciamo subito senza toccare il DB
+            if (!success) return false;
+
+            // Esegue la persistenza sul database e verifica che sia stata modificata almeno una riga
+            return _context.SaveChanges() > 0;
+        }
+
+        private bool CancellaDistintaBaseInternal(long id)
+        {
+            var distinta = _context.DistinteBase.Find(id);
+
+            // Se il record non esiste o è già stato rimosso, restituisce false
+            if (distinta == null) return false;
+
+            // Mette l'entità in stato "Deleted" all'interno del contesto (Context Tracking)
+            _context.DistinteBase.Remove(distinta);
+
+            // Restituisce true se l'operazione di preparazione alla cancellazione è andata a buon fine
+            return true;
+        }
+
+        #endregion DistintaBase
+
     }
 }
