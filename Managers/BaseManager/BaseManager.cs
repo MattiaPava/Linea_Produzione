@@ -64,22 +64,13 @@ namespace Linea_Produzione.Managers.BaseManager
         {
             try
             {
-                // 1. Validazione preventiva dei campi (sul modello già calcolato)
-                if (!CheckFields(model))
-                {
-                    return false;
-                }
-
-                // 2. Calcolo dei campi derivati e automatismi di stato
-                CalculatedFields(model);
-
-                // 3. Elaborazione dell'entità (Inserimento o Modifica)
+                // 1. Elaborazione dell'entità (Inserimento o Modifica)
                 if (!SalvaDistintaBaseInternal(model))
                 {
                     return false;
                 }
 
-                // 4. Persistenza dei dati sul Database
+                // 2. Persistenza dei dati sul Database
                 _context.SaveChanges();
                 return true;
             }
@@ -92,6 +83,16 @@ namespace Linea_Produzione.Managers.BaseManager
 
         private bool SalvaDistintaBaseInternal(DistintaBaseModel model)
         {
+            // 1. Validazione preventiva dei campi (sul modello già calcolato)
+            if (!CheckFields(model))
+            {
+                return false;
+            }
+
+            // 2. Calcolo dei campi derivati e automatismi di stato
+            CalculatedFields(model);
+
+            // 3. Mappatura al modello BL
             if (model.Id == 0)
             {
                 // ==========================================
