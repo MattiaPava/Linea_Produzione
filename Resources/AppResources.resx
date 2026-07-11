@@ -118,23 +118,23 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Stato_None" xml:space="preserve">
-    <value>None (API / Import)</value>
+    <value>Nessuno (API / Import)</value>
     <comment>StatoDistinta</comment>
   </data>
   <data name="Stato_Created" xml:space="preserve">
-    <value>Created</value>
+    <value>Creato</value>
     <comment>StatoDistinta</comment>
   </data>
   <data name="Stato_Modified" xml:space="preserve">
-    <value>Modified</value>
+    <value>Modificato</value>
     <comment>StatoDistinta</comment>
   </data>
   <data name="Stato_Completed" xml:space="preserve">
-    <value>Completed</value>
+    <value>Completato</value>
     <comment>StatoDistinta</comment>
   </data>
   <data name="Stato_Archived" xml:space="preserve">
-    <value>Archived</value>
+    <value>Archiviato</value>
     <comment>StatoDistinta</comment>
   </data>
 </root>

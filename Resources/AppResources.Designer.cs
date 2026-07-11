@@ -61,7 +61,7 @@ namespace Linea_Produzione.Resources {
         }
         
         /// <summary>
-        ///   Cerca una stringa localizzata simile a Archived.
+        ///   Cerca una stringa localizzata simile a Archiviato.
         /// </summary>
         public static string Stato_Archived {
             get {
@@ -70,7 +70,7 @@ namespace Linea_Produzione.Resources {
         }
         
         /// <summary>
-        ///   Cerca una stringa localizzata simile a Completed.
+        ///   Cerca una stringa localizzata simile a Completato.
         /// </summary>
         public static string Stato_Completed {
             get {
@@ -79,7 +79,7 @@ namespace Linea_Produzione.Resources {
         }
         
         /// <summary>
-        ///   Cerca una stringa localizzata simile a Created.
+        ///   Cerca una stringa localizzata simile a Creato.
         /// </summary>
         public static string Stato_Created {
             get {
@@ -88,7 +88,7 @@ namespace Linea_Produzione.Resources {
         }
         
         /// <summary>
-        ///   Cerca una stringa localizzata simile a Modified.
+        ///   Cerca una stringa localizzata simile a Modificato.
         /// </summary>
         public static string Stato_Modified {
             get {
@@ -97,7 +97,7 @@ namespace Linea_Produzione.Resources {
         }
         
         /// <summary>
-        ///   Cerca una stringa localizzata simile a None (API / Import).
+        ///   Cerca una stringa localizzata simile a Nessuno (API / Import).
         /// </summary>
         public static string Stato_None {
             get {

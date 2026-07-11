@@ -180,6 +180,7 @@ namespace Linea_Produzione.Controllers
         {
             var list = new List<SelectListItem>();
 
+            // REGOLA 1: Al Nuovo vedi solo Created
             if (isNuovo)
             {
                 list.Add(new SelectListItem
@@ -188,31 +189,39 @@ namespace Linea_Produzione.Controllers
                     Text = Resources.AppResources.Stato_Created,
                     Selected = true
                 });
+                return list; // Usciamo subito, non serve ciclare l'enum
             }
-            else
+
+            // Gestione della Modifica (isNuovo == false)
+            foreach (StatoDistinta st in Enum.GetValues(typeof(StatoDistinta)))
             {
-                foreach (StatoDistinta st in Enum.GetValues(typeof(StatoDistinta)))
+                // REGOLA 3: Se l'attuale è Archived, vedi solo Archived e Modified
+                if (statoAttuale == StatoDistinta.Archived)
                 {
-                    if (statoAttuale == StatoDistinta.Modified && st != StatoDistinta.Modified && st != StatoDistinta.Archived)
+                    if (st != StatoDistinta.Archived && st != StatoDistinta.Modified)
                     {
-                        continue;
+                        continue; // Salta tutti gli altri stati
                     }
-
-                    if (statoAttuale == StatoDistinta.Archived && st != StatoDistinta.Archived)
-                    {
-                        continue;
-                    }
-
-                    string resourceKey = $"Stato_{st}";
-                    string localizedText = Resources.AppResources.ResourceManager.GetString(resourceKey) ?? st.ToString();
-
-                    list.Add(new SelectListItem
-                    {
-                        Value = ((short)st).ToString(),
-                        Text = localizedText,
-                        Selected = (st == statoAttuale)
-                    });
                 }
+                // REGOLA 2: Nelle altre situazioni vedi tutto tranne Created (None, Modified, Completed, Archived)
+                else
+                {
+                    if (st == StatoDistinta.Created)
+                    {
+                        continue; // Nasconde il "Created" per evitare che la distinta torni allo stato iniziale
+                    }
+                }
+
+                // Recupero del testo localizzato dalle risorse
+                string resourceKey = $"Stato_{st}";
+                string localizedText = Resources.AppResources.ResourceManager.GetString(resourceKey) ?? st.ToString();
+
+                list.Add(new SelectListItem
+                {
+                    Value = ((short)st).ToString(),
+                    Text = localizedText,
+                    Selected = (st == statoAttuale)
+                });
             }
 
             return list;
