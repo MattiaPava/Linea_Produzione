@@ -1,15 +1,91 @@
-﻿<div id="dettagliTabsContainer" class="mt-4 d-none">
-    <ul class="nav nav-tabs" id="distintaTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="riepilogo-tab" data-bs-toggle="tab" data-bs-target="#riepilogo-pane" type="button" role="tab" aria-controls="riepilogo-pane" aria-selected="true">
+﻿<div id="dettagliTabsContainer" class="mt-4">
+    <ul class="nav nav-tabs border-0" id="distintaTabs" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="riepilogo-tab" data-bs-toggle="tab" data-bs-target="#riepilogo-pane"
+                    data-base-url="@Url.Action("Riepilogo", "DistintaBase")" type="button" role="tab">
                 <i class="bi bi-card-text me-2"></i>Riepilogo
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#progetto-pane"
+                    data-base-url="@Url.Action("Progetto", "DistintaBase")" type="button" role="tab">
+                <i class="bi bi-diagram-3 me-2"></i>Progetto
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tecnici-pane"
+                    data-base-url="@Url.Action("Tecnici", "DistintaBase")" type="button" role="tab">
+                <i class="bi bi-person-badge me-2"></i>Tecnici
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#montaggio-pane"
+                    data-base-url="@Url.Action("Montaggio", "DistintaBase")" type="button" role="tab">
+                <i class="bi bi-tools me-2"></i>Montaggio
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#collaudo-pane"
+                    data-base-url="@Url.Action("Collaudo", "DistintaBase")" type="button" role="tab">
+                <i class="bi bi-check2-circle me-2"></i>Collaudo
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#produzione-pane"
+                    data-base-url="@Url.Action("Produzione", "DistintaBase")" type="button" role="tab">
+                <i class="bi bi-gear me-2"></i>Produzione
             </button>
         </li>
     </ul>
 
-    <div class="tab-content bg-white border border-top-0 rounded-bottom p-4 shadow-sm" id="distintaTabsContent">
-        <div class="tab-pane fade show active" id="riepilogo-pane" role="tabpanel" aria-labelledby="riepilogo-tab" tabindex="0">
-            <div id="riepilogoContentPlaceholder"></div>
+    <div class="tab-content bg-white border rounded-bottom p-4 shadow-sm">
+        <div class="tab-pane fade show active" id="riepilogo-pane" role="tabpanel">
+            <div id="riepilogoContentPlaceholder" class="tab-content-placeholder"></div>
         </div>
+        <div class="tab-pane fade" id="progetto-pane" role="tabpanel"><div class="tab-content-placeholder"></div></div>
+        <div class="tab-pane fade" id="tecnici-pane" role="tabpanel"><div class="tab-content-placeholder"></div></div>
+        <div class="tab-pane fade" id="montaggio-pane" role="tabpanel"><div class="tab-content-placeholder"></div></div>
+        <div class="tab-pane fade" id="collaudo-pane" role="tabpanel"><div class="tab-content-placeholder"></div></div>
+        <div class="tab-pane fade" id="produzione-pane" role="tabpanel"><div class="tab-content-placeholder"></div></div>
     </div>
 </div>
+
+<script>
+    $(document).ready(function () {
+        // 1. Al click sulla riga della tabella
+        $('.tabella-distinte tbody tr').on('click', function() {
+            $('.tabella-distinte tbody tr').removeClass('table-primary');
+            $(this).addClass('table-primary');
+
+            var idDistinta = $(this).data('id');
+
+            // Aggiorna data-url per tutti i pulsanti tab
+            $('#distintaTabs button').each(function() {
+                var base = $(this).data('base-url');
+                $(this).attr('data-url', base + '?id=' + idDistinta);
+                // Svuota il segnaposto corrispondente
+                $($(this).data('bs-target')).find('.tab-content-placeholder').html('');
+            });
+
+            // Carica la tab attiva
+            caricaTab($('#distintaTabs button.active'));
+        });
+    });
+
+    function caricaTab($tab) {
+        var url = $tab.attr('data-url');
+        if (!url || url.includes('undefined')) return;
+
+        var $placeholder = $($tab.data('bs-target')).find('.tab-content-placeholder');
+
+        if ($placeholder.is(':empty')) {
+            $placeholder.html('<div class="p-3 text-center"><div class="spinner-border text-primary"></div></div>');
+            $placeholder.load(url);
+        }
+    }
+
+    // Per cambio manuale tab
+    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        caricaTab($(e.target));
+    });
+</script>

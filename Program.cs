@@ -62,10 +62,10 @@ app.UseAuthorization();
 //    name: "default",
 //    pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// 2. CORREZIONE FONDAMENTALE: Impostiamo la pagina delle distinte come pagina iniziale predefinita
+// 02. MODIFICA QUI:
+// Impostiamo il controller "MenuStructure" e la action "MenuStructure" come pagina iniziale
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=DistintaBase}/{action=DistintaBase}/{id?}");
-app.MapRazorPages();
+    pattern: "{controller=MenuStructure}/{action=MenuStructure}/{id?}");
 
 app.Run();

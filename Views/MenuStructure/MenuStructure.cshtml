@@ -1,0 +1,45 @@
+﻿@{
+    ViewData["Title"] = "Dashboard Principale";
+    Layout = "_Layout"; // Usa il tuo layout standard
+}
+
+<div class="dashboard-container">
+
+    <h2 class="section-title">Produzione</h2>
+    <div class="card-row">
+        <a asp-controller="DistintaBase" asp-action="DistintaBase" class="home-card card-produzione">
+            <i class="bi bi-diagram-3"></i>
+            <div>
+                <h3>Distinte Base</h3>
+                <p>Gestione distinta e versioni</p>
+            </div>
+        </a>
+
+        <div class="home-card card-produzione">
+            <i class="bi bi-gear-wide-connected"></i>
+            <div>
+                <h3>Monitoraggio Linee</h3>
+                <p>Stato attuale della produzione</p>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-title">Logistica</h2>
+    <div class="card-row">
+        <div class="home-card card-logistica">
+            <i class="bi bi-boxes"></i>
+            <div>
+                <h3>Magazzino</h3>
+                <p>Giacenze e movimentazioni</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Assicurati che la pagina occupi correttamente lo spazio se necessario */
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+</style>

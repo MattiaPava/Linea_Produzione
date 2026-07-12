@@ -324,3 +324,123 @@
             opacity: 1;
             transform: scale(1.05);
         }
+
+/* =========================================================================
+   SEZIONE 6: DASHBOARD E CARD (Netflix Style)
+   ========================================================================= */
+
+.dashboard-container {
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px; /* Spazio tra le righe di card */
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 5px;
+}
+
+.card-row {
+    display: flex;
+    gap: 20px;
+    overflow-x: auto;
+    padding: 10px 0 20px 0;
+    /* Scroll fluido su dispositivi touch */
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+
+    /* Scrollbar stilizzata per Chrome/Edge */
+    .card-row::-webkit-scrollbar {
+        height: 6px;
+    }
+
+    .card-row::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 10px;
+    }
+
+.home-card {
+    min-width: 240px;
+    height: 140px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+    .home-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        border-color: var(--primary);
+    }
+
+    .home-card i {
+        font-size: 2rem;
+        color: var(--primary);
+        margin-bottom: 12px;
+    }
+
+    .home-card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+        color: #1e293b;
+    }
+
+    .home-card p {
+        font-size: 0.82rem;
+        color: #64748b;
+        margin-top: 5px;
+    }
+
+/* --- GRADIENTI PER CARD HOME --- */
+
+/* Base comune per l'icona (spostata a sinistra per un look più moderno) */
+.home-card {
+    display: flex;
+    flex-direction: row; /* Icona a sinistra, testo a destra */
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border: none; /* Rimuoviamo il bordo standard */
+    transition: transform 0.2s, box-shadow 0.2s;
+    background: #ffffff; /* Fallback */
+}
+
+/* Card Produzione: Arancione Gradiente */
+.card-produzione {
+    background: linear-gradient(135deg, #fff9e6 0%, #ffeec4 100%);
+    border: 1px solid #ffe5a6;
+}
+
+    .card-produzione i, .card-produzione h3, .card-produzione p {
+        color: #926400; /* Marrone/Arancio scuro per leggibilità */
+    }
+
+/* Card Logistica: Verde/Verdacqua Gradiente */
+.card-logistica {
+    background: linear-gradient(135deg, #e6fffb 0%, #c4fce8 100%);
+    border: 1px solid #a6f5de;
+}
+
+    .card-logistica i, .card-logistica h3, .card-logistica p {
+        color: #006655; /* Verde bosco per contrasto */
+    }
+
+/* Hover effect unificato */
+.home-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+}
